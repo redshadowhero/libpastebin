@@ -66,6 +66,7 @@ void parseOpts( int argc, char** argv )
     char* username = NULL;
     char* password = NULL;
     int i = 0;
+    pb_status retval = 0;
 
     while( true )
     {
@@ -142,9 +143,19 @@ void parseOpts( int argc, char** argv )
     {
         if( !is_set( settings, password_set ) ); // need to silently prompt for password somehow. TODO:
 
-        if( pb_getUserSessionKey( pb, username, password ) != STATUS_OKAY )
+        if( (retval = pb_getUserSessionKey( pb, username, password )) != STATUS_OKAY )
         {
-            // handle problems here.
+            switch( retval )
+            {
+                case STATUS_USERNAME_IS_NULL: // shouldn't really get here, but the code needs cleaning up
+                    fprintf( stderr, "Username is NULL!\n" );
+                break;
+                case STATUS_PASSWORD_IS_NULL:
+                    fprintf( stderr, "Password is NULL!\n" );
+                break;
+                default: // we don't need to handle any of the other status returns
+                break;
+            }
             debugf( "Couldn't get session key..\n" );
         }
     }

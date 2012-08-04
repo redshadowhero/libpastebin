@@ -24,11 +24,6 @@
 #define   PB_API_LOGIN_URL   "http://pastebin.com/api/api_login.php"
 #define   PB_API_RAW_URL     "http://pastebin.com/raw.php?i="
 
-/*
-* pb_settings bits and their meaning.
-* [0] If the paste is public or private. 0 for public, 1 for  private.
-* [2] If the paste is unlisted. If this is set, then [0] should be ignored
-*/
 typedef uint16_t pb_settings;
 
 typedef enum _pb_status
@@ -45,6 +40,9 @@ typedef enum _pb_status
     STATUS_INVALID_EXPIRE_DATE,   /* "Bad API request, invalid api_expire_date"                                    */
     STATUS_INVALID_PASTE_PRIVATE, /* "Bad API request, invalid api_paste_private"                                  */
     STATUS_INVALID_PASTE_FORMAT,  /* "Bad API request, invalid api_paste_format"                                   */
+    /* function failure codes */
+    STATUS_USERNAME_IS_NULL,
+    STATUS_PASSWORD_IS_NULL,
     /* size of this enum */
     STATUS_LIST_MAX
 } pb_status;
@@ -79,6 +77,7 @@ bool pb_isSet( pastebin*, pb_settings );
 */
 char* pb_newPaste( pastebin*, char*, int );
 /** Gets a session key for the user
+* @param[in] _pb The pastebin struct
 * @param[in] _username The username
 * @param[in] _password The password
 * @return The session key; NULL otherwise.
@@ -86,7 +85,6 @@ char* pb_newPaste( pastebin*, char*, int );
 pb_status pb_getUserSessionKey( pastebin* /* pb */, char* /* username */, char* /* password */ );
 /** Gets a list of all user pastest, delimited by a given limit size.
 * @param[in] _pb The pastebin object.
-* @param[in] _key the user session key
 * @param[in] _size The number of entries to return
 * @return A list of pastes
 */

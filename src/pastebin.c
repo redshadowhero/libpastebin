@@ -70,9 +70,7 @@ pb_syntax pb_getSyntax( char* _syn )
 {
     debugf( "Entering function with argument \"%s\"\n", _syn );
 
-    unsigned int i = 0;
-
-    for( ; i < SYN_LIST_MAX; i++ )
+    for( unsigned int i = 0; i < SYN_LIST_MAX; i++ )
         if( !strcmp( pb_syntaxstring[i], _syn ) )
         {
             debugf( "Matching syntax found at index %i\n", i );
@@ -165,12 +163,6 @@ void pb_unset( pastebin* _pb, pb_settings _settings )
     debugf( "Exiting function" );
 }
 
-// consider replacing with the following define:
-/*
- * #define pb_isSet( _pb, _setting ) ( ( _pb->settings & _setting ) ? true : false )
- *
- * This doesn't check for type safety purposes, so maybe not.
-*/
 bool pb_isSet( pastebin* _pb, pb_settings _setting )
 {
     debugf( "Entering function looking for setting %d\n", _setting );
@@ -262,6 +254,18 @@ pb_status pb_getUserSessionKey( pastebin* _pb, char* _username, char* _password 
 {
     // note that we don't store the username or password; just the key after it completes successfully. 
     debugf( "Entering function with argument %s: %s, %s: %s\n", stringify( _username ), _username, stringify( _password ), _password );
+
+    if( !_username )
+    {
+        debugf( "username is NULL!\n" );
+        return STATUS_USERNAME_IS_NULL;
+    }
+    if( !_password )
+    {
+        debugf( "password is NULL!\n" );
+        return STATUS_PASSWORD_IS_NULL;
+    }
+
     
     char* argu = (char*)malloc( sizeof(char)*1024 ); // 1kb should suffice. If it doesn't, your password is too long, bro
     char* user = (char*)malloc( sizeof(char)*strlen(_username)*3 );
