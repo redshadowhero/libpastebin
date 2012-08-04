@@ -1,4 +1,9 @@
 #include <stdio.h>
+#define __USE_XOPEN
+#include <unistd.h>
+#undef __USE_XOPEN
+#include <pwd.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -64,7 +69,7 @@ void parseOpts( int argc, char** argv )
     int fsz = 0;
     char* string;
     char* username = NULL;
-    char* password = NULL;
+    char password[64];
     int i = 0;
     pb_status retval = 0;
 
@@ -121,7 +126,7 @@ void parseOpts( int argc, char** argv )
                 if( optarg )
                 {
                     settings |= password_set;
-                    password = optarg; // should probably use strcpy
+                    strcpy( password, optarg ); // should probably use strcpy
                     debugf( "Password is %s\n", optarg );
                 }
             break;
@@ -141,7 +146,10 @@ void parseOpts( int argc, char** argv )
     // before we parse the remaining arguments, we need to see if they wanted a session key.
     if( is_set( settings, user_key_get ) )
     {
-        if( !is_set( settings, password_set ) ); // need to silently prompt for password somehow. TODO:
+        if( !is_set( settings, password_set ) ) // need to silently prompt for password somehow. TODO:
+        {
+            strcpy( password, getpass( "Password:" ) );
+        }
 
         if( (retval = pb_getUserSessionKey( pb, username, password )) != STATUS_OKAY )
         {
