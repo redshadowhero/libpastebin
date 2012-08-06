@@ -7,6 +7,7 @@ typedef enum _pb_syntax
     SYN_LANG_C,
     SYN_LANG_CPP,
     SYN_LANG_JAVA,
+    SYN_LANG_BASH,
     // should be the size of the enum list.
     // Everything here should correspond to
     // a string in pb_syntaxstring 

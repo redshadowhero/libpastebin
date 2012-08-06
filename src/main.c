@@ -2,7 +2,6 @@
 #define __USE_XOPEN
 #include <unistd.h>
 #undef __USE_XOPEN
-#include <pwd.h>
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -170,10 +169,8 @@ void parseOpts( int argc, char** argv )
 
     if( optind < argc )
     {
-        //printf( "The kitchen sink:\n" );
         while( optind < argc ) // handle remaining args
         {
-            //printf( "\t%s\n", argv[optind++] );
             if( is_set( settings, retrieve_flag ) ) // everything is a retreieve...? TODO: smart check for IDs versus URLs.
                 printf( "%s\n", pb_getRawPaste( argv[optind++] ) );
             else

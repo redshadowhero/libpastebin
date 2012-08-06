@@ -51,10 +51,11 @@ static size_t pb_memcopy( void* ptr, size_t size, size_t nmemb, void* data )
 
 char* pb_syntaxstring[SYN_LIST_MAX] =
 {
-    "text", /* SYN_LANG_NONE */
-    "c",    /* SYN_LANG_C    */
-    "cpp",  /* SYN_LANG_CPP  */
-    "java"  /* SYN_LANG_JAVA */
+    "text",  /* SYN_LANG_NONE */
+    "c",     /* SYN_LANG_C    */
+    "cpp",   /* SYN_LANG_CPP  */
+    "java",  /* SYN_LANG_JAVA */
+    "bash",  /* SYN_LANG_BASH */
 };
 
 
