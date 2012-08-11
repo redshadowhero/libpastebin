@@ -11,6 +11,8 @@ VPATH=src
 INCLUDE=-Iinclude
 LIBS=-lcurl
 
+.SILENT:
+
 all: $(EXECUTABLE)
 
 pb_debug: main.c pastebin.c
@@ -25,4 +27,4 @@ $(LIBNAME): pastebin.c
 	$(GCC) $(CFLAGS) $(INCLUDE) $^ -fPIC -shared -o $(LIBPATH)/$(LIBNAME)
 
 clean:
-	rm $(BINPATH)/$(EXECUTABLE) $(LIBPATH)/$(LIBNAME) $(BINPATH)/pb_debug
+	rm -f $(BINPATH)/$(EXECUTABLE) $(LIBPATH)/$(LIBNAME) $(BINPATH)/pb_debug

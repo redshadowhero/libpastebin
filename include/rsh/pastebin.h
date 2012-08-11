@@ -28,38 +28,38 @@ typedef uint16_t pb_settings;
 
 typedef enum _pb_status
 {
-    STATUS_OKAY = 0,
-    /* paste failure codes */
-    STATUS_INVALID_API_OPTION,    /* "Bad API request, invalid api_option"                                         */
-    STATUS_INVALID_API_DEV_KEY,   /* "Bad API request, invalid api_dev_key"                                        */
-    STATUS_IP_BLOCKED,            /* "Bad API request, IP blocked"                                                 */
-    STATUS_MAX_UNLISTED_PASTES,   /* "Bad API request, maximum number of 25 unlisted pastes for your free account" */
-    STATUS_MAX_PRIVATE_PASTES,    /* "Bad API request, maximum number of 10 private pastes for your free account"  */
-    STATUS_EMPTY_PASTE,           /* "Bad API request, api_paste_code was empty"                                   */
-    STATUS_MAX_PASTE_FILE_SIZE,   /* "Bad API request, maximum paste file size exceeded"                           */
-    STATUS_INVALID_EXPIRE_DATE,   /* "Bad API request, invalid api_expire_date"                                    */
-    STATUS_INVALID_PASTE_PRIVATE, /* "Bad API request, invalid api_paste_private"                                  */
-    STATUS_INVALID_PASTE_FORMAT,  /* "Bad API request, invalid api_paste_format"                                   */
-    /* function failure codes */
-    STATUS_USERNAME_IS_NULL,
-    STATUS_PASSWORD_IS_NULL,
-    /* size of this enum */
-    STATUS_LIST_MAX
+	STATUS_OKAY = 0,
+	/* paste failure codes */
+	STATUS_INVALID_API_OPTION,    /* "Bad API request, invalid api_option"                                         */
+	STATUS_INVALID_API_DEV_KEY,   /* "Bad API request, invalid api_dev_key"                                        */
+	STATUS_IP_BLOCKED,            /* "Bad API request, IP blocked"                                                 */
+	STATUS_MAX_UNLISTED_PASTES,   /* "Bad API request, maximum number of 25 unlisted pastes for your free account" */
+	STATUS_MAX_PRIVATE_PASTES,    /* "Bad API request, maximum number of 10 private pastes for your free account"  */
+	STATUS_EMPTY_PASTE,           /* "Bad API request, api_paste_code was empty"                                   */
+	STATUS_MAX_PASTE_FILE_SIZE,   /* "Bad API request, maximum paste file size exceeded"                           */
+	STATUS_INVALID_EXPIRE_DATE,   /* "Bad API request, invalid api_expire_date"                                    */
+	STATUS_INVALID_PASTE_PRIVATE, /* "Bad API request, invalid api_paste_private"                                  */
+	STATUS_INVALID_PASTE_FORMAT,  /* "Bad API request, invalid api_paste_format"                                   */
+	/* function failure codes */
+	STATUS_USERNAME_IS_NULL,
+	STATUS_PASSWORD_IS_NULL,
+	/* size of this enum */
+	STATUS_LIST_MAX
 } pb_status;
 
 typedef struct _pastebin
 {
-    char* devkey;
-    char* userkey;
-    char* pastename;
-    pb_status lastStatus;
-    pb_settings settings;
-    pb_syntax syntax;
+	char* devkey;
+	char* userkey;
+	char* pastename;
+	pb_status lastStatus;
+	pb_settings settings;
+	pb_syntax syntax;
 } pastebin;
 
 // creation/destruction
 pastebin* pb_newPastebin();
-void      pb_freePastebin( pastebin* );
+void	  pb_freePastebin( pastebin* );
 
 // settings
 void pb_set( pastebin*, pb_settings );
