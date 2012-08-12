@@ -3,6 +3,7 @@
 #include <unistd.h>
 #undef   __USE_XOPEN
 #include <string.h>
+#include <ctype.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -64,6 +65,23 @@ struct option long_options[] =
 	{ 0,          0,                 0,  0  }
 };
 
+char* getIDFromURL( char* url )
+/*
+* Should parse an id from a pastebin url
+* "http://pastebin.com/x9Ddu6mj" should return "x9Ddu6mj"
+*/
+{
+	debugf( "Entering function\n" );
+	size_t length = strlen( url );
+	for( int i = length-1; i >= 0; i-- )
+		if( !isalnum( url[i] ) )
+		{
+			debugf( "Found ID, returning %s\n", &url[i+1] );
+			return (&url[i+1]);
+		}
+	return NULL;
+}
+
 void printusage( char* command )
 {
 	printf( USAGE, command );
@@ -78,6 +96,7 @@ void parseOpts( int argc, char** argv )
 	char* string;
 	char* username = NULL;
 	char password[64];
+	char* paste_id = NULL;
 	int i = 0;
 	pb_status retval = 0;
 
@@ -108,10 +127,20 @@ void parseOpts( int argc, char** argv )
 
 			case 'r': // retrieve flag set
 				settings |= retrieve_flag;
+				if( is_set( settings, delete_flag ) )
+				{
+					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
+					exit( 42 );
+				}
 			break;
 
 			case 'd': // delete flag set
 				settings |= delete_flag;
+				if( is_set( settings, retrieve_flag ) )
+				{
+					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
+					exit( 42 );
+				}
 			break;
 
 			case 'n': // naming the paste
@@ -192,10 +221,28 @@ void parseOpts( int argc, char** argv )
 
 	while( optind < argc ) // handle remaining args
 	{
-		if( is_set( settings, retrieve_flag ) ) // everything is a retreieve...? TODO: smart check for IDs versus URLs.
-			printf( "%s\n", pb_getRawPaste( argv[optind++] ) );
+		if( is_set( settings, retrieve_flag ) ) // they want to retrieve urls
+		{
+			if( !strncmp( argv[optind], "http:", 5 ) )
+			{
+				debugf( "URL detected.. extracting ID\n" );
+				paste_id = getIDFromURL( argv[optind++] );
+				printf( "%s\n", pb_getRawPaste( paste_id ) );
+			}
+			else
+				printf( "%s\n", pb_getRawPaste( argv[optind++] ) );
+		}
 		else if( is_set( settings, delete_flag ) ) // they want to delete urls
-			pb_deletePaste( pb, argv[optind++] );
+		{
+			if( !strncmp( argv[optind], "http:", 5 ) )
+			{
+				debugf( "URL detected.. extracting ID\n" );
+				paste_id = getIDFromURL( argv[optind++] );
+				pb_deletePaste( pb, paste_id );
+			}
+			else
+				pb_deletePaste( pb, argv[optind++] );
+		}
 		else
 		{
 			if( (file = fopen( argv[optind], "r" )) != NULL )
