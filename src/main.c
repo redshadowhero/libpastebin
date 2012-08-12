@@ -16,7 +16,7 @@
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
 
-#define OPTS "t:n:u:p:k:lrh"
+#define OPTS "t:n:u:p:k:lrdh"
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
@@ -27,14 +27,16 @@
 	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
 	"\t-l, --list\t\t\tList all supported syntaxes\n" \
 	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
+	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
 	"\t-h, --help\t\t\tPrint this message\n"
 
 /* globals */
 
-#define no_settings 0x0
-#define retrieve_flag 0x1
-#define user_key_get 0x2
-#define password_set 0x4
+#define  no_settings     0x0 // 00000000
+#define  retrieve_flag   0x1 // 00000001
+#define  user_key_get    0x2 // 00000010
+#define  password_set    0x4 // 00000100
+#define  delete_flag     0x8 // 00001000
 
 pastebin* pb;
 
@@ -55,6 +57,7 @@ struct option long_options[] =
 	{ "pass",     required_argument, 0, 'p' },
 	{ "key",      required_argument, 0, 'k' },
 	{ "retrieve", no_argument,       0, 'r' },
+	{ "delete",   no_argument,       0, 'd' },
 	{ "name",     required_argument, 0, 'n' },
 	{ "help",     no_argument,       0, 'h' },
 	{ "list",     no_argument,       0, 'l' },
@@ -96,7 +99,6 @@ void parseOpts( int argc, char** argv )
 				break;
 
 			case 't': // someone set the language
-				//printf( "syntax selected: %s\n", optarg );
 				pb_setWithOptions( pb, PB_SYNTAX, pb_getSyntax( optarg ) );
 			break;
 
@@ -106,6 +108,10 @@ void parseOpts( int argc, char** argv )
 
 			case 'r': // retrieve flag set
 				settings |= retrieve_flag;
+			break;
+
+			case 'd': // delete flag set
+				settings |= delete_flag;
 			break;
 
 			case 'n': // naming the paste
@@ -141,13 +147,11 @@ void parseOpts( int argc, char** argv )
 			break;
 
 			case '?':
-				//printf( "Shit son. You done fucked up.\n" );
 				printusage( argv[0] );
 				exit( 3 );
 			break;
 
 			default:
-				printf( "Aborting program. You are too stupid to use it.\n" );
 				exit( 42 );
 			break;
 		}
@@ -180,7 +184,6 @@ void parseOpts( int argc, char** argv )
 		}
 	}
 
-
 	if( optind >= argc && is_set( settings, user_key_get ) ) // Assume they just want the user key
 	{
 		debugf( "Returning only user key\n" );
@@ -191,6 +194,8 @@ void parseOpts( int argc, char** argv )
 	{
 		if( is_set( settings, retrieve_flag ) ) // everything is a retreieve...? TODO: smart check for IDs versus URLs.
 			printf( "%s\n", pb_getRawPaste( argv[optind++] ) );
+		else if( is_set( settings, delete_flag ) ) // they want to delete urls
+			pb_deletePaste( pb, argv[optind++] );
 		else
 		{
 			if( (file = fopen( argv[optind], "r" )) != NULL )

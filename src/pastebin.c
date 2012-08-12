@@ -494,3 +494,36 @@ pb_status pb_getUserSessionKey( pastebin* _pb, char* _username, char* _password 
 
 	return STATUS_OKAY;
 }
+
+pb_status pb_deletePaste( pastebin* _pb, char* _paste_id )
+{
+	debugf( "Entering function\n" );
+	if( ! _pb->userkey )
+		return STATUS_USER_KEY_NOT_SET;
+	
+	char* argu = (char*)malloc( sizeof(char)*1024 );
+	CURL* curl = curl_easy_init();
+	struct pb_memblock chunk;
+
+	chunk.memory = malloc(1);
+	chunk.size   = 0;
+
+	curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, pb_memcopy );
+	curl_easy_setopt( curl, CURLOPT_WRITEDATA, (void*)&chunk );
+
+	curl_easy_setopt( curl, CURLOPT_URL, PB_API_POST_URL );
+	curl_easy_setopt( curl, CURLOPT_POST, 1 ); 
+
+	sprintf( argu, "api_option=delete&api_dev_key=%s&api_user_key=%s&api_paste_key=%s", _pb->devkey, _pb->userkey, _paste_id );
+	debugf( "Curl postfields\n%s\n", argu );
+
+	curl_easy_setopt( curl, CURLOPT_POSTFIELDS, argu );
+	curl_easy_setopt( curl, CURLOPT_NOBODY, 0 );
+
+	curl_easy_perform( curl );
+	debugf( "Response is: %s\n", chunk.memory );
+
+	debugf( "Exiting function\n" );
+
+	return STATUS_OKAY;
+}

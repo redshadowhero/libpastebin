@@ -43,6 +43,7 @@ typedef enum _pb_status
 	/* function failure codes */
 	STATUS_USERNAME_IS_NULL,
 	STATUS_PASSWORD_IS_NULL,
+	STATUS_USER_KEY_NOT_SET,
 	/* size of this enum */
 	STATUS_LIST_MAX
 } pb_status;
@@ -100,7 +101,6 @@ char* pb_getTrendingPastes( pastebin* );
 * @param[in] _key The user key. Get with pb_getUserSessionKey
 * @param[in] _pastekey the paste key to delete.
 */
-// TODO:
 pb_status pb_deletePaste( pastebin*, char* /* key of the paste to delete */ );
 /**
 * @param[in] _key The id to get the raw for.
