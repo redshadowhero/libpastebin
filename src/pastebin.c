@@ -527,3 +527,32 @@ pb_status pb_deletePaste( pastebin* _pb, char* _paste_id )
 
 	return STATUS_OKAY;
 }
+
+char* pb_getTrendingPastes( pastebin* _pb )
+{
+	char* argu = (char*)malloc( sizeof(char)*1024 );
+	CURL* curl = curl_easy_init();
+	struct pb_memblock chunk;
+
+	chunk.memory = malloc(1);
+	chunk.size = 0;
+
+	curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, pb_memcopy );
+	curl_easy_setopt( curl, CURLOPT_WRITEDATA, (void*)&chunk );
+
+	curl_easy_setopt( curl, CURLOPT_URL, PB_API_POST_URL );
+	curl_easy_setopt( curl, CURLOPT_POST, 1 );
+
+	sprintf( argu, "api_dev_key=%s&api_option=trends", _pb->devkey );
+	debugf( "Curl postfields\n%s\n", argu );
+
+	curl_easy_setopt( curl, CURLOPT_POSTFIELDS, argu );
+	curl_easy_setopt( curl, CURLOPT_NOBODY, 0 );
+
+	curl_easy_perform( curl );
+	debugf( "Response from server:\n%s\n", chunk.memory );
+
+	debugf( "Exiting function\n" );
+
+	return chunk.memory;
+}

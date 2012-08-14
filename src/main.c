@@ -17,7 +17,7 @@
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
 
-#define OPTS "t:n:u:p:k:lrdh"
+#define OPTS "t:n:u:p:k:lerdh"
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
@@ -27,6 +27,7 @@
 	"\t-t, --syntax=SYNTAX\t\tUse specified syntax\n" \
 	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
 	"\t-l, --list\t\t\tList all supported syntaxes\n" \
+	"\t-e, --trending\t\t\tGet trending pastes\n" \
 	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
 	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
 	"\t-h, --help\t\t\tPrint this message\n"
@@ -58,6 +59,7 @@ struct option long_options[] =
 	{ "pass",     required_argument, 0, 'p' },
 	{ "key",      required_argument, 0, 'k' },
 	{ "retrieve", no_argument,       0, 'r' },
+	{ "trending", no_argument,       0, 'e' },
 	{ "delete",   no_argument,       0, 'd' },
 	{ "name",     required_argument, 0, 'n' },
 	{ "help",     no_argument,       0, 'h' },
@@ -152,6 +154,13 @@ void parseOpts( int argc, char** argv )
 				printf( "List of supported languages:\n" );
 				for( i = 0; i < SYN_LIST_MAX; i++ )
 					printf( "\t%s\n", pb_syntaxstring[i] );
+
+				return;
+			break;
+
+			case 'e': // get trending pastes..
+				
+				printf( "Trending pastes:\n%s\n", pb_getTrendingPastes( pb ) );
 
 				return;
 			break;
