@@ -16,6 +16,7 @@
 #if ! defined( PB_CLIENT_API_KEY )
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
+#define DEFAULT_STDIN_BUFFER_SIZE 1024
 
 #define OPTS "t:n:u:p:k:lerdh"
 
@@ -94,7 +95,7 @@ void parseOpts( int argc, char** argv )
 	int c;
 	int option_index = 0;
 	FILE* file;
-	int fsz = 0;
+	unsigned int fsz = 0;
 	char* string;
 	char* username = NULL;
 	char password[64];
@@ -220,6 +221,39 @@ void parseOpts( int argc, char** argv )
 			}
 			debugf( "Couldn't get session key..\n" );
 		}
+	}
+
+	if( optind >= argc ) // if there's nothing else to parse, they might want stdin
+	{
+		// TODO: debug messages
+		fsz = DEFAULT_STDIN_BUFFER_SIZE;
+		size_t csz = 1;
+		string = (char*)malloc( sizeof(char)*fsz );
+		*string = '\0';
+		char buffer[DEFAULT_STDIN_BUFFER_SIZE];
+
+		while( fgets( buffer, DEFAULT_STDIN_BUFFER_SIZE, stdin ) )
+		{
+			char* old = string;
+			csz += strlen( buffer );
+			string = realloc( string, csz );
+			if( string == NULL )
+			{
+					fprintf( stderr, "Can't reallocate string to new buffer size!\n" );
+					free( old );
+					exit( 2 );
+			}
+			strcat( string, buffer );
+		}
+		if( ferror( stdin ) )
+		{
+			free( string );
+			fprintf( stderr, "Can't read from stdin!\n" );
+			exit( 3 );
+		}
+
+		printf( "%s\n", pb_newPaste( pb, string, strlen(string) ) );
+
 	}
 
 	if( optind >= argc && is_set( settings, user_key_get ) ) // Assume they just want the user key
