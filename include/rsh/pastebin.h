@@ -1,3 +1,10 @@
+/*
+* TODO:
+* + pb_getUserInformation (http://pastebin.com/api#9)
+* + #ifndef ifndef __cplusplus
+* + header information (with license)
+*/
+
 #ifndef PASTEBIN_H
 #define PASTEBIN_H
 
@@ -89,7 +96,6 @@ pb_status pb_getUserSessionKey( pastebin* /* pb */, char* /* username */, char* 
 * @param[in] _size The number of entries to return
 * @return A list of pastes
 */
-// TODO:
 char* pb_getUserPastes( pastebin*, int /* list size */ );
 /**
 * @param[in] _pb The pastebin struct.

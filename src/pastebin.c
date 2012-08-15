@@ -556,3 +556,38 @@ char* pb_getTrendingPastes( pastebin* _pb )
 
 	return chunk.memory;
 }
+
+char* pb_getUserPastes( pastebin* _pb, int _size )
+{
+	debugf( "Entering function\n" );
+	if( _size < 0 || _size > 1000 )
+		return NULL;
+	if( _size == 0 )
+		_size = 50;
+
+	char* argu = (char*)malloc( sizeof(char)*1024 );
+	CURL* curl = curl_easy_init();
+	struct pb_memblock chunk;
+
+	chunk.memory = malloc(1);
+	chunk.size = 0;
+	
+	curl_easy_setopt( curl, CURLOPT_WRITEFUNCTION, pb_memcopy );
+	curl_easy_setopt( curl, CURLOPT_WRITEDATA, (void*)&chunk );
+
+	curl_easy_setopt( curl, CURLOPT_URL, PB_API_POST_URL );
+	curl_easy_setopt( curl, CURLOPT_POST, 1 );
+
+	sprintf( argu, "api_dev_key=%s&api_option=list&api_user_key=%s&api_results_limit=%d", _pb->devkey, _pb->userkey, _size );
+	debugf( "Curl postfields\n%s\n", argu );
+
+	curl_easy_setopt( curl, CURLOPT_POSTFIELDS, argu );
+	curl_easy_setopt( curl, CURLOPT_NOBODY, 0 );
+
+	curl_easy_perform( curl );
+	debugf( "Response from the server:\n%s\n", chunk.memory );
+
+	debugf( "Exiting function\n" );
+
+	return chunk.memory;
+}

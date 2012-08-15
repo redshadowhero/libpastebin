@@ -17,7 +17,7 @@
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
 
-#define OPTS "t:n:u:p:k:lerdh"
+#define OPTS "t:n:u:p:k:a:lerdh"
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
@@ -28,17 +28,19 @@
 	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
 	"\t-l, --list\t\t\tList all supported syntaxes\n" \
 	"\t-e, --trending\t\t\tGet trending pastes\n" \
+	"\t-a, --paste-list=AMOUNT\t\tLists AMOUNT pastes by user. Pass 0 if you want the default amount. Need username or key to use.\n" \
 	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
 	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
 	"\t-h, --help\t\t\tPrint this message\n"
 
 /* globals */
 
-#define  no_settings     0x0 // 00000000
-#define  retrieve_flag   0x1 // 00000001
-#define  user_key_get    0x2 // 00000010
-#define  password_set    0x4 // 00000100
-#define  delete_flag     0x8 // 00001000
+#define  no_settings     0x0  // 00000000
+#define  retrieve_flag   0x1  // 00000001
+#define  user_key_get    0x2  // 00000010
+#define  password_set    0x4  // 00000100
+#define  delete_flag     0x8  // 00001000
+#define  user_list_get   0x16 // 00010000
 
 pastebin* pb;
 
@@ -54,17 +56,18 @@ byte settings = no_settings;
 
 struct option long_options[] =
 {
-	{ "syntax",   required_argument, 0, 't' },
-	{ "user",     required_argument, 0, 'u' },
-	{ "pass",     required_argument, 0, 'p' },
-	{ "key",      required_argument, 0, 'k' },
-	{ "retrieve", no_argument,       0, 'r' },
-	{ "trending", no_argument,       0, 'e' },
-	{ "delete",   no_argument,       0, 'd' },
-	{ "name",     required_argument, 0, 'n' },
-	{ "help",     no_argument,       0, 'h' },
-	{ "list",     no_argument,       0, 'l' },
-	{ 0,          0,                 0,  0  }
+	{ "syntax",      required_argument,  0,  't' },
+	{ "user",        required_argument,  0,  'u' },
+	{ "pass",        required_argument,  0,  'p' },
+	{ "key",         required_argument,  0,  'k' },
+	{ "retrieve",    no_argument,        0,  'r' },
+	{ "trending",    no_argument,        0,  'e' },
+	{ "paste-list",  required_argument,  0,  'a' },
+	{ "delete",      no_argument,        0,  'd' },
+	{ "name",        required_argument,  0,  'n' },
+	{ "help",        no_argument,        0,  'h' },
+	{ "list",        no_argument,        0,  'l' },
+	{ 0,             0,                  0,   0  }
 };
 
 char* getIDFromURL( char* url )
@@ -93,6 +96,7 @@ void parseOpts( int argc, char** argv )
 {
 	int c;
 	int option_index = 0;
+	int user_list_size = 0;
 	FILE* file;
 	int fsz = 0;
 	char* string;
@@ -184,6 +188,12 @@ void parseOpts( int argc, char** argv )
 				pb_setWithOptions( pb, PB_USER_KEY, optarg );
 			break;
 
+			case 'a': // the user wants to list their pastes
+				debugf( "Setting %s to %s\n", stringify( user_list_size ), optarg );
+				settings |= user_list_get;
+				user_list_size = atoi( optarg ) ;
+			break;
+
 			case '?':
 				printusage( argv[0] );
 				exit( 3 );
@@ -222,11 +232,20 @@ void parseOpts( int argc, char** argv )
 		}
 	}
 
-	if( optind >= argc && is_set( settings, user_key_get ) ) // Assume they just want the user key
+	if( optind >= argc && is_set( settings, user_key_get ) ) 
 	{
-		debugf( "Returning only user key\n" );
-		printf( "%s\n", pb->userkey );
+		if( !is_set( settings, user_key_get ) ) // Assume they just want the user key
+		{
+			debugf( "Returning only user key\n" );
+			printf( "%s\n", pb->userkey );
+		}
+		else // they want to list their pastes
+		{
+			debugf( "Returning user pastes\n" );
+			printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
+		}
 	}
+
 
 	while( optind < argc ) // handle remaining args
 	{
