@@ -16,8 +16,9 @@
 #if ! defined( PB_CLIENT_API_KEY )
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
+#define DEFAULT_STDIN_BUFFER_SIZE 1024
 
-#define OPTS "t:n:u:p:k:a:lerdh"
+#define OPTS "t:n:u:p:k:a:lierdh"
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
@@ -28,6 +29,7 @@
 	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
 	"\t-l, --list\t\t\tList all supported syntaxes\n" \
 	"\t-e, --trending\t\t\tGet trending pastes\n" \
+	"\t-i, --stdin\t\t\tUse stdin for input\n" \
 	"\t-a, --paste-list=AMOUNT\t\tLists AMOUNT pastes by user. Pass 0 if you want the default amount. Need username or key to use.\n" \
 	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
 	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
@@ -40,7 +42,8 @@
 #define  user_key_get    0x2  // 00000010
 #define  password_set    0x4  // 00000100
 #define  delete_flag     0x8  // 00001000
-#define  user_list_get   0x16 // 00010000
+#define  user_list_get   0x10 // 00010000
+#define  stdin_use       0x20 // 00100000
 
 pastebin* pb;
 
@@ -53,6 +56,7 @@ typedef uint8_t byte;
 byte settings = no_settings;
 
 #define is_set( bite, set ) ( bite & set )
+#define set( bite, set ) ( bite = (is_set(bite,set) ? bite : bite ^ set) )
 
 struct option long_options[] =
 {
@@ -98,13 +102,22 @@ void parseOpts( int argc, char** argv )
 	int option_index = 0;
 	int user_list_size = 0;
 	FILE* file;
-	int fsz = 0;
+	unsigned int fsz = 0;
 	char* string;
 	char* username = NULL;
 	char password[64];
 	char* paste_id = NULL;
 	int i = 0;
 	pb_status retval = 0;
+
+	debugf( "Options with bit values:\n" );
+	debugf( "Option %s: %d\n", stringify(no_settings  ), no_settings  );  
+	debugf( "Option %s: %d\n", stringify(retrieve_flag), retrieve_flag);
+	debugf( "Option %s: %d\n", stringify(user_key_get ), user_key_get );
+	debugf( "Option %s: %d\n", stringify(password_set ), password_set );
+	debugf( "Option %s: %d\n", stringify(delete_flag  ), delete_flag  );
+	debugf( "Option %s: %d\n", stringify(user_list_get), user_list_get);
+	debugf( "Option %s: %d\n", stringify(stdin_use    ), stdin_use    );
 
 	while( true )
 	{
@@ -132,7 +145,10 @@ void parseOpts( int argc, char** argv )
 			break;
 
 			case 'r': // retrieve flag set
-				settings |= retrieve_flag;
+				//settings |= retrieve_flag;
+				debugf( "Setting retrieve_flag...\n" );
+				set( settings, retrieve_flag );
+				debugf( "Settings now %c\n", settings );
 				if( is_set( settings, delete_flag ) )
 				{
 					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
@@ -141,12 +157,22 @@ void parseOpts( int argc, char** argv )
 			break;
 
 			case 'd': // delete flag set
-				settings |= delete_flag;
+				//settings |= delete_flag;
+				debugf( "Setting delete_flag...\n" );
+				set( settings, delete_flag );
+				debugf( "Settings now %c\n", settings );
 				if( is_set( settings, retrieve_flag ) )
 				{
 					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
 					exit( 42 );
 				}
+			break;
+
+			case 'i': // they want stdin input
+				debugf( "Setting stdin_use (%c)... \n", stdin_use );
+				//settings |= stdin_use;
+				set( settings, stdin_use );
+				debugf( "Settings now %c\n", settings );
 			break;
 
 			case 'n': // naming the paste
@@ -172,13 +198,19 @@ void parseOpts( int argc, char** argv )
 			case 'u': // give a username
 				debugf( "Username is %s\n", optarg );
 				username = optarg; // should probably use strcpy
-				settings |= user_key_get;
+				//settings |= user_key_get;
+				debugf( "Setting user_key_get\n" );
+				set( settings, user_key_get );
+				debugf( "Settings now %c\n", settings );
 			break;
 
 			case 'p': // give a password
 				if( optarg )
 				{
-					settings |= password_set;
+					//settings |= password_set;
+					debugf( "Setting password_set...\n" );
+					set( settings, password_set );
+					debugf( "Settings now %c\n", settings );
 					strcpy( password, optarg ); // should probably use strcpy
 					debugf( "Password is %s\n", optarg );
 				}
@@ -190,7 +222,10 @@ void parseOpts( int argc, char** argv )
 
 			case 'a': // the user wants to list their pastes
 				debugf( "Setting %s to %s\n", stringify( user_list_size ), optarg );
-				settings |= user_list_get;
+				//settings |= user_list_get;
+				debugf( "Setting user_list_get...\n" );
+				set( settings, user_list_get );
+				debugf( "Settings now %c\n", settings );
 				user_list_size = atoi( optarg ) ;
 			break;
 
@@ -206,6 +241,7 @@ void parseOpts( int argc, char** argv )
 	}
 	
 	debugf( "Finished argument parsing; checking for password. %d arguments remain to parse\n", ( argc - optind ) );
+	debugf( "Post-parse settings: %c\n", settings );
 	
 	// before we parse the remaining arguments, we need to see if they wanted a session key.
 	if( is_set( settings, user_key_get ) )
@@ -232,7 +268,40 @@ void parseOpts( int argc, char** argv )
 		}
 	}
 
-	if( optind >= argc && is_set( settings, user_key_get ) ) 
+	if( is_set( settings, stdin_use ) ) // they want stdin
+	{
+		fsz = DEFAULT_STDIN_BUFFER_SIZE;
+		size_t csz = 1;
+		string = (char*)malloc( sizeof(char)*fsz );
+		*string = '\0';
+		char buffer[DEFAULT_STDIN_BUFFER_SIZE];
+
+		while( fgets( buffer, DEFAULT_STDIN_BUFFER_SIZE, stdin ) )
+		{
+			char* old = string;
+			csz += strlen( buffer );
+			string = realloc( string, csz );
+			if( string == NULL )
+			{
+					fprintf( stderr, "Can't reallocate string to new buffer size!\n" );
+					free( old );
+					exit( 2 );
+			}
+			strcat( string, buffer );
+		}
+		if( ferror( stdin ) )
+		{
+			free( string );
+			fprintf( stderr, "Can't read from stdin!\n" );
+			exit( 3 );
+		}
+
+		printf( "%s\n", pb_newPaste( pb, string, strlen(string) ) );
+
+		return;
+	}
+
+	if( optind >= argc && is_set( settings, user_key_get ) ) // Assume they just want the user key
 	{
 		if( !is_set( settings, user_key_get ) ) // Assume they just want the user key
 		{
@@ -262,6 +331,7 @@ void parseOpts( int argc, char** argv )
 		}
 		else if( is_set( settings, delete_flag ) ) // they want to delete urls
 		{
+			debugf( "Deleting paste %s\n", argv[optind] );
 			if( !strncmp( argv[optind], "http:", 5 ) )
 			{
 				debugf( "URL detected.. extracting ID\n" );
@@ -271,29 +341,27 @@ void parseOpts( int argc, char** argv )
 			else
 				pb_deletePaste( pb, argv[optind++] );
 		}
-		else
+			
+		if( (file = fopen( argv[optind], "r" )) != NULL )
 		{
-			if( (file = fopen( argv[optind], "r" )) != NULL )
-			{
-				fseek( file, 0, SEEK_END );
-				fsz = ftell( file );
-				fseek( file, 0, SEEK_SET );
-				string = (char*)malloc( sizeof(char)*fsz+1 );
-				
-				// shouldn't fail... I think
-				fread( string, sizeof(char), fsz, file );
-				string[fsz] = '\0';
+			fseek( file, 0, SEEK_END );
+			fsz = ftell( file );
+			fseek( file, 0, SEEK_SET );
+			string = (char*)malloc( sizeof(char)*fsz+1 );
+			
+			// shouldn't fail... I think
+			fread( string, sizeof(char), fsz, file );
+			string[fsz] = '\0';
 
-				printf( "%s\n", pb_newPaste( pb, string, fsz+1 ) );
-				free( string );
-				fclose( file );
-			}
-			else 
-			{
-				fprintf( stderr, "Error: Can't open file `%s`\n", argv[optind] );
-			}
-			optind++;
+			printf( "%s\n", pb_newPaste( pb, string, fsz+1 ) );
+			free( string );
+			fclose( file );
 		}
+		else 
+		{
+			fprintf( stderr, "Error: Can't open file `%s`\n", argv[optind] );
+		}
+		optind++;
 	}
 
 }
