@@ -268,6 +268,11 @@ void parseOpts( int argc, char** argv )
 		}
 	}
 
+	if( is_set( settings, user_list_get ) )
+	{
+		printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
+	}
+
 	if( is_set( settings, stdin_use ) ) // they want stdin
 	{
 		fsz = DEFAULT_STDIN_BUFFER_SIZE;
@@ -313,6 +318,8 @@ void parseOpts( int argc, char** argv )
 			debugf( "Returning user pastes\n" );
 			printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
 		}
+
+		return;
 	}
 
 
@@ -341,25 +348,27 @@ void parseOpts( int argc, char** argv )
 			else
 				pb_deletePaste( pb, argv[optind++] );
 		}
-			
-		if( (file = fopen( argv[optind], "r" )) != NULL )
+		else
 		{
-			fseek( file, 0, SEEK_END );
-			fsz = ftell( file );
-			fseek( file, 0, SEEK_SET );
-			string = (char*)malloc( sizeof(char)*fsz+1 );
-			
-			// shouldn't fail... I think
-			fread( string, sizeof(char), fsz, file );
-			string[fsz] = '\0';
+			if( (file = fopen( argv[optind], "r" )) != NULL )
+			{
+				fseek( file, 0, SEEK_END );
+				fsz = ftell( file );
+				fseek( file, 0, SEEK_SET );
+				string = (char*)malloc( sizeof(char)*fsz+1 );
+				
+				// shouldn't fail... I think
+				fread( string, sizeof(char), fsz, file );
+				string[fsz] = '\0';
 
-			printf( "%s\n", pb_newPaste( pb, string, fsz+1 ) );
-			free( string );
-			fclose( file );
-		}
-		else 
-		{
-			fprintf( stderr, "Error: Can't open file `%s`\n", argv[optind] );
+				printf( "%s\n", pb_newPaste( pb, string, fsz+1 ) );
+				free( string );
+				fclose( file );
+			}
+			else 
+			{
+				fprintf( stderr, "Error: Can't open file `%s`\n", argv[optind] );
+			}
 		}
 		optind++;
 	}
