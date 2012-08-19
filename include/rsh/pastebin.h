@@ -21,10 +21,11 @@
 #define   PB_PASTE_PRIVATE    0x1 /* binary 00000001 */
 #define   PB_PASTE_UNLISTED   0x2 /* binary 00000010 */
 // for use with pb_setWithOptions
-#define   PB_DEV_KEY    256
-#define   PB_SYNTAX     257
-#define   PB_USER_KEY   258
-#define   PB_PASTE_NAME 259
+#define   PB_DEV_KEY     256
+#define   PB_SYNTAX      257
+#define   PB_USER_KEY    258
+#define   PB_PASTE_NAME  259
+#define   PB_EXPIRE_DATE 260
 
 /* API URLs */
 #define   PB_API_POST_URL    "http://pastebin.com/api/api_post.php"
@@ -55,12 +56,27 @@ typedef enum _pb_status
 	STATUS_LIST_MAX
 } pb_status;
 
+
+typedef enum _pb_expire
+{
+	EXPIRE_NEVER = 0,
+	EXPIRE_10M,
+	EXPIRE_1H,
+	EXPIRE_1D,
+	EXPIRE_1M,
+	/* size of the enum  */
+	EXPIRE_LIST_MAX
+} pb_expire;
+
+extern char* pb_expirestring[ EXPIRE_LIST_MAX ];
+
 typedef struct _pastebin
 {
 	char* devkey;
 	char* userkey;
 	char* pastename;
 	pb_status lastStatus;
+	pb_expire expiration;
 	pb_settings settings;
 	pb_syntax syntax;
 } pastebin;

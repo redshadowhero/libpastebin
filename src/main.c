@@ -18,17 +18,24 @@
 #endif 
 #define DEFAULT_STDIN_BUFFER_SIZE 1024
 
-#define OPTS "t:n:u:p:k:a:lierdh"
+#define OPTS "s:n:u:p:k:a:e:litrdh"
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
 	"\t-u, --user=USERNAME\t\tGive a username to authenticate as\n" \
 	"\t-p, --pass=PASSWORD\t\tGive a password to authenticate as\n" \
 	"\t-k, --key=USERKEY\t\tUse a user key to interact with pastebin\n" \
-	"\t-t, --syntax=SYNTAX\t\tUse specified syntax\n" \
+	"\t-s, --syntax=SYNTAX\t\tUse specified syntax\n" \
+	"\t-e, --expire=WHEN\t\tHow long the paste should last.\n" \
+	"\t\t\t\t\tAcceptable values are:\n" \
+	"\t\t\t\t\tNever: 'N'\n" \
+	"\t\t\t\t\t10 minutes: '10M'\n" \
+	"\t\t\t\t\t1 hour: '1H'\n" \
+	"\t\t\t\t\t1 day: '1D'\n" \
+	"\t\t\t\t\t1 month: '1M'\n" \
 	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
 	"\t-l, --list\t\t\tList all supported syntaxes\n" \
-	"\t-e, --trending\t\t\tGet trending pastes\n" \
+	"\t-t, --trending\t\t\tGet trending pastes\n" \
 	"\t-i, --stdin\t\t\tUse stdin for input\n" \
 	"\t-a, --paste-list=AMOUNT\t\tLists AMOUNT pastes by user. Pass 0 if you want the default amount. Need username or key to use.\n" \
 	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
@@ -65,7 +72,8 @@ struct option long_options[] =
 	{ "pass",        required_argument,  0,  'p' },
 	{ "key",         required_argument,  0,  'k' },
 	{ "retrieve",    no_argument,        0,  'r' },
-	{ "trending",    no_argument,        0,  'e' },
+	{ "expire",      required_argument,  0,  'e' },
+	{ "trending",    no_argument,        0,  't' },
 	{ "paste-list",  required_argument,  0,  'a' },
 	{ "delete",      no_argument,        0,  'd' },
 	{ "name",        required_argument,  0,  'n' },
@@ -136,7 +144,7 @@ void parseOpts( int argc, char** argv )
 				printf( "\n" );
 				break;
 
-			case 't': // someone set the language
+			case 's': // someone set the language
 				pb_setWithOptions( pb, PB_SYNTAX, pb_getSyntax( optarg ) );
 			break;
 
@@ -168,6 +176,14 @@ void parseOpts( int argc, char** argv )
 				}
 			break;
 
+			case 'e': // set expiration
+				for( int i = 0; i < EXPIRE_LIST_MAX; i++ )
+					if( !strcmp( pb_expirestring[i], optarg ) )
+					{
+						pb_setWithOptions( pb, PB_EXPIRE_DATE, i );
+					}
+			break;
+
 			case 'i': // they want stdin input
 				debugf( "Setting stdin_use (%c)... \n", stdin_use );
 				//settings |= stdin_use;
@@ -188,7 +204,7 @@ void parseOpts( int argc, char** argv )
 				return;
 			break;
 
-			case 'e': // get trending pastes..
+			case 't': // get trending pastes..
 				
 				printf( "Trending pastes:\n%s\n", pb_getTrendingPastes( pb ) );
 
