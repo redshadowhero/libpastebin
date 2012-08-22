@@ -199,7 +199,7 @@ void parseOpts( int argc, char** argv )
 			case 'l': // list all syntaxes.
 				printf( "List of supported languages:\n" );
 				for( i = 0; i < SYN_LIST_MAX; i++ )
-					printf( "\t%s\n", pb_syntaxstring[i] );
+					printf( "\t%s: %s\n", pb_syntaxstring[i], pb_syntaxstringdesc[i] );
 
 				return;
 			break;

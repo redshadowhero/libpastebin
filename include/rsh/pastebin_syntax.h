@@ -211,6 +211,7 @@ typedef enum _pb_syntax
 } pb_syntax;
 
 extern char* pb_syntaxstring[SYN_LIST_MAX];
+extern char* pb_syntaxstringdesc[SYN_LIST_MAX];
 
 char* pb_getSyntaxString( pb_syntax );
 // returns something from pb_syntax if found; defaults to "text"
