@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #define  __USE_XOPEN
 #include <unistd.h>
@@ -10,7 +14,7 @@
 #include <getopt.h>
 
 #include <rsh/pastebin.h>
-#include <rsh/pastebin_syntax.h>
+//#include <rsh/pastebin_syntax.h>
 #include <rsh/debug.h>
 
 #if ! defined( PB_CLIENT_API_KEY )
@@ -372,12 +376,53 @@ void parseOpts( int argc, char** argv )
 				fsz = ftell( file );
 				fseek( file, 0, SEEK_SET );
 				string = (char*)malloc( sizeof(char)*fsz+1 );
-				
-				// shouldn't fail... I think
+
+				// fails if fsz is 0
 				fread( string, sizeof(char), fsz, file );
 				string[fsz] = '\0';
 
-				printf( "%s\n", pb_newPaste( pb, string, fsz+1 ) );
+
+				char* _retstr = pb_newPaste( pb, string, fsz+1 );
+				switch( pb->lastStatus )
+				{
+					case STATUS_OKAY:
+					default:
+						printf( "%s \n", _retstr );
+					break;
+					case STATUS_INVALID_API_OPTION:
+						fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );
+					break;
+					case STATUS_INVALID_API_DEV_KEY:
+						fprintf( stderr, "Warning, dev key is invalid!\n" );
+					break;
+					case STATUS_IP_BLOCKED:
+						fprintf( stderr, "Warning, ip is blocked!\n" );
+					break;
+					case STATUS_MAX_UNLISTED_PASTES:
+						fprintf( stderr, "You can't create anymore unlisted pastes!\n" );
+					break;
+					case STATUS_MAX_PRIVATE_PASTES:
+						fprintf( stderr, "You can't create anymore private pastes!\n" );
+					break;
+					case STATUS_EMPTY_PASTE:
+						fprintf( stderr, "Your paste was empty!\n" );
+					break;
+					case STATUS_MAX_PASTE_FILE_SIZE:
+						fprintf( stderr, "Your paste was too large!\n" );
+					break;
+					case STATUS_INVALID_EXPIRE_DATE: // should never actually get here, because of how the API handles expires
+						fprintf( stderr, "Invalid expire date!\n" );
+					break;
+					case STATUS_INVALID_PASTE_PRIVATE: // ditto
+						fprintf( stderr, "Invalid paste private state!\n" );
+					break;
+					case STATUS_MAX_PASTE_PER_DAY:
+						fprintf( stderr, "Max pastes per day reached!\n" );
+					break;
+					case STATUS_INVALID_PASTE_FORMAT: // also ditto again
+						fprintf( stderr, "Invalid paste format! Use --list to see valid paste formats!\n" );
+					break;
+				}
 				free( string );
 				fclose( file );
 			}
@@ -405,3 +450,7 @@ int main( int argc, char** argv )
 
 	return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif

@@ -5,9 +5,7 @@ libpastebin contains the api for [pastebin.com](http://pastebin.com/) written in
 Dependencies are simple for the library, since only libcurl is needed.
 
 Installation _should_ be as simple as:
-```
-sudo apt-get install libcurl4-openssl-dev
-```
+```sudo apt-get install libcurl4-openssl-dev```
 
 ##Compiling##
 

@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <rsh/pastebin.h>
 #include <rsh/pastebin_syntax.h>
 #include <rsh/debug.h>
@@ -36,7 +40,7 @@ static size_t pb_memcopy( void* ptr, size_t size, size_t nmemb, void* data )
 	mem->size += realsize;
 	mem->memory[mem->size] = 0;
 
-	debugf( "Exiting function\n" );
+	debugf( "Exiting function with size of %zu\n", realsize );
 
 	return realsize;
 }
@@ -45,450 +49,6 @@ static size_t pb_memcopy( void* ptr, size_t size, size_t nmemb, void* data )
 * End static/local items
 */
 
-/* 
-* pastebin_syntax.h implemenatation 
-*/
-
-char* pb_syntaxstring[SYN_LIST_MAX] =
-{
-	"text",          /* SYN_LANG_NONE          */
-	"4cs",           /* SYN_LANG_4CS           */
-	"6502acme",      /* SYN_LANG_6502ACME      */
-	"6502kickass",   /* SYN_LANG_6502KICKASS   */
-	"6502tasm",      /* SYN_LANG_6502TASM      */
-	"abap",          /* SYN_LANG_ABAP          */
-	"actionscript",  /* SYN_LANG_ACTIONSCRIPT  */
-	"actionscript3", /* SYN_LANG_ACTIONSCRIPT3 */
-	"ada",           /* SYN_LANG_ADA           */
-	"algol68",       /* SYN_LANG_ALGOL68       */
-	"apache",        /* SYN_LANG_APACHE        */
-	"applescript",   /* SYN_LANG_APPLESCRIPT   */
-	"apt_sources",   /* SYN_LANG_APT_SOURCES   */
-	"asm",           /* SYN_LANG_ASM           */
-	"asp",           /* SYN_LANG_ASP           */
-	"autoconf",      /* SYN_LANG_AUTOCONF      */
-	"autohotkey",    /* SYN_LANG_AUTOHOTKEY    */
-	"autoit",        /* SYN_LANG_AUTOIT        */
-	"avisynth",      /* SYN_LANG_AVISYNTH      */
-	"awk",           /* SYN_LANG_AWK           */
-	"basconavr",     /* SYN_LANG_BASCOMAVR     */
-	"bash",          /* SYN_LANG_BASH          */
-	"basic4gl",      /* SYN_LANG_BASIC4GL      */
-	"bibtex",        /* SYN_LANG_BIBTEX        */
-	"blitzbasic",    /* SYN_LANG_BLITZBASIC    */
-	"bnf",           /* SYN_LANG_BNF           */
-	"boo",           /* SYN_LANG_BOO           */
-	"bf",            /* SYN_LANG_BF            */
-	"c",             /* SYN_LANG_C             */
-	"c_mac",         /* SYN_LANG_C_MAC         */
-	"cil",           /* SYN_LANG_CIL           */
-	"csharp",        /* SYN_LANG_CSHARP        */
-	"ccp",           /* SYN_LANG_CPP           */
-	"cpp-qt",        /* SYN_LANG_CPP-QT        */
-	"c_loadrunner",  /* SYN_LANG_C_LOADRUNNER  */
-	"caddcl",        /* SYN_LANG_CADDCL        */
-	"cadslip",       /* SYN_LANG_CADLISP       */
-	"cfdg",          /* SYN_LANG_CFDG          */
-	"chaiscript",    /* SYN_LANG_CHAISCRIPT    */
-	"clojure",       /* SYN_LANG_CLOJURE       */
-	"klonec",        /* SYN_LANG_KLONEC        */
-	"klonecpp",      /* SYN_LANG_KLONECPP      */
-	"cmake",         /* SYN_LANG_CMAKE         */
-	"cobol",         /* SYN_LANG_COBOL         */
-	"coffeescript",  /* SYN_LANG_COFFEESCRIPT  */
-	"cfm",           /* SYN_LANG_CFM           */
-	"css",           /* SYN_LANG_CSS           */
-	"cuesheet",      /* SYN_LANG_CUESHEET      */
-	"d",             /* SYN_LANG_D             */
-	"dcs",           /* SYN_LANG_DCS           */
-	"delphi",        /* SYN_LANG_DELPHI        */
-	"oxygene",       /* SYN_LANG_OXYGENE       */
-	"diff",          /* SYN_LANG_DIFF          */
-	"div",           /* SYN_LANG_DIV           */
-	"dos",           /* SYN_LANG_DOS           */
-	"dot",           /* SYN_LANG_DOT           */
-	"e",             /* SYN_LANG_E             */
-	"ecmascript",    /* SYN_LANG_ECMASCRIPT    */
-	"eiffel",        /* SYN_LANG_EIFFEL        */
-	"email",         /* SYN_LANG_EMAIL         */
-	"epc",           /* SYN_LANG_EPC           */
-	"erlang",        /* SYN_LANG_ERLANG        */
-	"fsharp",        /* SYN_LANG_FSHARP        */
-	"falcon",        /* SYN_LANG_FALCON        */
-	"fo",            /* SYN_LANG_FO            */
-	"f1",            /* SYN_LANG_F1            */
-	"fortran",       /* SYN_LANG_FORTRAN       */
-	"freebasic",     /* SYN_LANG_FREEBASIC     */
-	"freeswitch",    /* SYN_LANG_FREESWITCH    */
-	"gambas",        /* SYN_LANG_GAMBAS        */
-	"gml",           /* SYN_LANG_GML           */
-	"gdb",           /* SYN_LANG_GDB           */
-	"genero",        /* SYN_LANG_GENERO        */
-	"genie",         /* SYN_LANG_GENIE         */
-	"gettext",       /* SYN_LANG_GETTEXT       */
-	"go",            /* SYN_LANG_GO            */
-	"groovy",        /* SYN_LANG_GROOVY        */
-	"gwbasic",       /* SYN_LANG_GWBASIC       */
-	"haskell",       /* SYN_LANG_HASKELL       */
-	"hicest",        /* SYN_LANG_HICEST        */
-	"hq9plus",       /* SYN_LANG_HQ9PLUS       */
-	"html4strict",   /* SYN_LANG_HTML4STRICT   */
-	"html5",         /* SYN_LANG_HTML5         */
-	"icon",          /* SYN_LANG_ICON          */
-	"idl",           /* SYN_LANG_IDL           */
-	"ini",           /* SYN_LANG_INI           */
-	"inno",          /* SYN_LANG_INNO          */
-	"intercal",      /* SYN_LANG_INTERCAL      */
-	"io",            /* SYN_LANG_IO            */
-	"j",             /* SYN_LANG_J             */
-	"java",          /* SYN_LANG_JAVA          */
-	"java5",         /* SYN_LANG_JAVA5         */
-	"javascript",    /* SYN_LANG_JAVASCRIPT    */
-	"jquery",        /* SYN_LANG_JQUERY        */
-	"kixtart",       /* SYN_LANG_KIXTART       */
-	"latex",         /* SYN_LANG_LATEX         */
-	"lb",            /* SYN_LANG_LB            */
-	"lsl2",          /* SYN_LANG_LSL2          */
-	"lisp",          /* SYN_LANG_LISP          */
-	"llvm",          /* SYN_LANG_LLVM          */
-	"locobasic",     /* SYN_LANG_LOCOBASIC     */
-	"logtalk",       /* SYN_LANG_LOGTALK       */
-	"lolcode",       /* SYN_LANG_LOLCODE       */
-	"lotusformulas", /* SYN_LANG_LOTUSFORMULAS */
-	"lotusscript",   /* SYN_LANG_LOTUSSCRIPT   */
-	"lscript",       /* SYN_LANG_LSCRIPT       */
-	"lua",           /* SYN_LANG_LUA           */
-	"m68k",          /* SYN_LANG_M68K          */
-	"magiksf",       /* SYN_LANG_MAGIKSF       */
-	"make",          /* SYN_LANG_MAKE          */
-	"mapbasic",      /* SYN_LANG_MAPBASIC      */
-	"matlab",        /* SYN_LANG_MATLAB        */
-	"mirc",          /* SYN_LANG_MIRC          */
-	"mmix",          /* SYN_LANG_MMIX          */
-	"modula2",       /* SYN_LANG_MODULA2       */
-	"modula3",       /* SYN_LANG_MODULA3       */
-	"68000devpac",   /* SYN_LANG_68000DEVPAC   */
-	"mpasm",         /* SYN_LANG_MPASM         */
-	"mxml",          /* SYN_LANG_MXML          */
-	"mysql",         /* SYN_LANG_MYSQL         */
-	"newlisp",       /* SYN_LANG_NEWLISP       */
-	"nsis",          /* SYN_LANG_NSIS          */
-	"oberon2",       /* SYN_LANG_OBERON2       */
-	"objeck",        /* SYN_LANG_OBJECK        */
-	"objc",          /* SYN_LANG_OBJC          */
-	"ocaml-brief",   /* SYN_LANG_OCAML-BRIEF   */
-	"ocaml",         /* SYN_LANG_OCAML         */
-	"pf",            /* SYN_LANG_PF            */
-	"glsl",          /* SYN_LANG_GLSL          */
-	"oobas",         /* SYN_LANG_OOBAS         */
-	"oracle11",      /* SYN_LANG_ORACLE11      */
-	"oracle8",       /* SYN_LANG_ORACLE8       */
-	"oz",            /* SYN_LANG_OZ            */
-	"pascal",        /* SYN_LANG_PASCAL        */
-	"pawn",          /* SYN_LANG_PAWN          */
-	"pcre",          /* SYN_LANG_PCRE          */
-	"per",           /* SYN_LANG_PER           */
-	"perl",          /* SYN_LANG_PERL          */
-	"perl6",         /* SYN_LANG_PERL6         */
-	"php",           /* SYN_LANG_PHP           */
-	"php-brief",     /* SYN_LANG_PHP-BRIEF     */
-	"pic16",         /* SYN_LANG_PIC16         */
-	"pike",          /* SYN_LANG_PIKE          */
-	"pixelbender",   /* SYN_LANG_PIXELBENDER   */
-	"plsql",         /* SYN_LANG_PLSQL         */
-	"postgresql",    /* SYN_LANG_POSTGRESQL    */
-	"povray",        /* SYN_LANG_POVRAY        */
-	"powershell",    /* SYN_LANG_POWERSHELL    */
-	"powerbuilder",  /* SYN_LANG_POWERBUILDER  */
-	"proftpd",       /* SYN_LANG_PROFTPD       */
-	"progress",      /* SYN_LANG_PROGRESS      */
-	"prolog",        /* SYN_LANG_PROLOG        */
-	"properties",    /* SYN_LANG_PROPERTIES    */
-	"providex",      /* SYN_LANG_PROVIDEX      */
-	"purebasic",     /* SYN_LANG_PUREBASIC     */
-	"pycon",         /* SYN_LANG_PYCON         */
-	"python",        /* SYN_LANG_PYTHON        */
-	"q",             /* SYN_LANG_Q             */
-	"qbasic",        /* SYN_LANG_QBASIC        */
-	"rsplus",        /* SYN_LANG_RSPLUS        */
-	"rails",         /* SYN_LANG_RAILS         */
-	"rebol",         /* SYN_LANG_REBOL         */
-	"reg",           /* SYN_LANG_REG           */
-	"robots",        /* SYN_LANG_ROBOTS        */
-	"rpmspec",       /* SYN_LANG_RPMSPEC       */
-	"ruby",          /* SYN_LANG_RUBY          */
-	"gnuplot",       /* SYN_LANG_GNUPLOT       */
-	"sas",           /* SYN_LANG_SAS           */
-	"scala",         /* SYN_LANG_SCALA         */
-	"scheme",        /* SYN_LANG_SCHEME        */
-	"scilab",        /* SYN_LANG_SCILAB        */
-	"sdlbasic",      /* SYN_LANG_SDLBASIC      */
-	"smalltalk",     /* SYN_LANG_SMALLTALK     */
-	"smarty",        /* SYN_LANG_SMARTY        */
-	"sql",           /* SYN_LANG_SQL           */
-	"systemverilog", /* SYN_LANG_SYSTEMVERILOG */
-	"tsql",          /* SYN_LANG_TSQL          */
-	"tcl",           /* SYN_LANG_TCL           */
-	"teraterm",      /* SYN_LANG_TERATERM      */
-	"thinbasic",     /* SYN_LANG_THINBASIC     */
-	"typoscript",    /* SYN_LANG_TYPOSCRIPT    */
-	"unicon",        /* SYN_LANG_UNICON        */
-	"uscript",       /* SYN_LANG_USCRIPT       */
-	"vala",          /* SYN_LANG_VALA          */
-	"vbnet",         /* SYN_LANG_VBNET         */
-	"verilog",       /* SYN_LANG_VERILOG       */
-	"vhdl",          /* SYN_LANG_VHDL          */
-	"vim",           /* SYN_LANG_VIM           */
-	"visualprolog",  /* SYN_LANG_VISUALPROLOG  */
-	"vb",            /* SYN_LANG_VB            */
-	"visualfoxpro",  /* SYN_LANG_VISUALFOXPRO  */
-	"whitespace",    /* SYN_LANG_WHITESPACE    */
-	"whois",         /* SYN_LANG_WHOIS         */
-	"winbatch",      /* SYN_LANG_WINBATCH      */
-	"xbasic",        /* SYN_LANG_XBASIC        */
-	"xml",           /* SYN_LANG_XML           */
-	"xorg_conf",     /* SYN_LANG_XORG_CONF     */
-	"xpp",           /* SYN_LANG_XPP           */
-	"yaml",          /* SYN_LANG_YAML          */
-	"z80",           /* SYN_LANG_Z80           */
-	"zxbasic"        /* SYN_LANG_ZXBASIC       */
-};
-
-char* pb_syntaxstringdesc[SYN_LIST_MAX] = 
-{
-	"None",
-	"4CS",
-	"6502 ACME Cross Assembler",
-	"6502 Kick Assembler",
-	"6502 TASM/64TASS",
-	"ABAP",
-	"ActionScript",
-	"ActionScript 3",
-	"Ada",
-	"ALGOL 68",
-	"Apache Log",
-	"AppleScript",
-	"APT Sources",
-	"ASM (NASM)",
-	"ASP",
-	"autoconf",
-	"Autohotkey",
-	"AutoIt",
-	"Avisynth",
-	"Awk",
-	"BASCOM AVR",
-	"Bash",
-	"Basic4GL",
-	"BibTeX",
-	"Blitz Basic",
-	"BNF",
-	"BOO",
-	"BrainFuck",
-	"C",
-	"C for Macs",
-	"C Intermediate Language",
-	"C#",
-	"C++",
-	"C++ (with QT extensions)",
-	"C: Loadrunner",
-	"CAD DCL",
-	"CAD Lisp",
-	"CFDG",
-	"ChaiScript",
-	"Clojure",
-	"Clone C",
-	"Clone C++",
-	"CMake",
-	"COBOL",
-	"CoffeeScript",
-	"ColdFusion",
-	"CSS",
-	"Cuesheet",
-	"D",
-	"DCS",
-	"Delphi",
-	"Delphi Prism (Oxygene)",
-	"Diff",
-	"DIV",
-	"DOS",
-	"DOT",
-	"E",
-	"ECMAScript",
-	"Eiffel",
-	"Email",
-	"EPC",
-	"Erlang",
-	"F#",
-	"Falcon",
-	"FO Language",
-	"Formula One",
-	"Fortran",
-	"FreeBasic",
-	"FreeSWITCH",
-	"GAMBAS",
-	"Game Maker",
-	"GDB",
-	"Genero",
-	"Genie",
-	"GetText",
-	"Go",
-	"Groovy",
-	"GwBasic",
-	"Haskell",
-	"HicEst",
-	"HQ9 Plus",
-	"HTML",
-	"HTML 5",
-	"Icon",
-	"IDL",
-	"INI file",
-	"Inno Script",
-	"INTERCAL",
-	"IO",
-	"J",
-	"Java",
-	"Java 5",
-	"JavaScript",
-	"jQuery",
-	"KiXtart",
-	"Latex",
-	"Liberty BASIC",
-	"Linden Scripting",
-	"Lisp",
-	"LLVM",
-	"Loco Basic",
-	"Logtalk",
-	"LOL Code",
-	"Lotus Formulas",
-	"Lotus Script",
-	"LScript",
-	"Lua",
-	"M68000 Assembler",
-	"MagikSF",
-	"Make",
-	"MapBasic",
-	"MatLab",
-	"mIRC",
-	"MIX Assembler",
-	"Modula 2",
-	"Modula 3",
-	"Motorola 68000 HiSoft Dev",
-	"MPASM",
-	"MXML",
-	"MySQL",
-	"newLISP",
-	"NullSoft Installer",
-	"Oberon 2",
-	"Objeck Programming Langua",
-	"Objective C",
-	"OCalm Brief",
-	"OCaml",
-	"OpenBSD PACKET FILTER",
-	"OpenGL Shading",
-	"Openoffice BASIC",
-	"Oracle 11",
-	"Oracle 8",
-	"Oz",
-	"Pascal",
-	"PAWN",
-	"PCRE",
-	"Per",
-	"Perl",
-	"Perl 6",
-	"PHP",
-	"PHP Brief",
-	"Pic 16",
-	"Pike",
-	"Pixel Bender",
-	"PL/SQL",
-	"PostgreSQL",
-	"POV-Ray",
-	"Power Shell",
-	"PowerBuilder",
-	"ProFTPd",
-	"Progress",
-	"Prolog",
-	"Properties",
-	"ProvideX",
-	"PureBasic",
-	"PyCon",
-	"Python",
-	"q/kdb+",
-	"QBasic",
-	"R",
-	"Rails",
-	"REBOL",
-	"REG",
-	"Robots",
-	"RPM Spec",
-	"Ruby",
-	"Ruby Gnuplot",
-	"SAS",
-	"Scala",
-	"Scheme",
-	"Scilab",
-	"SdlBasic",
-	"Smalltalk",
-	"Smarty",
-	"SQL",
-	"SystemVerilog",
-	"T-SQL",
-	"TCL",
-	"Tera Term",
-	"thinBasic",
-	"TypoScript",
-	"Unicon",
-	"UnrealScript",
-	"Vala",
-	"VB.NET",
-	"VeriLog",
-	"VHDL",
-	"VIM",
-	"Visual Pro Log",
-	"VisualBasic",
-	"VisualFoxPro",
-	"WhiteSpace",
-	"WHOIS",
-	"Winbatch",
-	"XBasic",
-	"XML",
-	"Xorg Config",
-	"XPP",
-	"YAML",
-	"Z80 Assembler",
-	"ZXBasic"
-};
-
-
-char* pb_getSyntaxString( pb_syntax _syntax )
-{
-	debugf( "Entering function with argument %d\n", _syntax );
-	debugf( "Returning with \"%s\"\n", pb_syntaxstring[_syntax] );
-	debugf( "Exiting function\n" );
-	return pb_syntaxstring[_syntax];
-}
-
-pb_syntax pb_getSyntax( const char* _syn )
-{
-	debugf( "Entering function with argument \"%s\"\n", _syn );
-
-	for( unsigned int i = 0; i < SYN_LIST_MAX; i++ )
-		if( !strcmp( pb_syntaxstring[i], _syn ) )
-		{
-			debugf( "Matching syntax found at index %i\n", i );
-			debugf( "Exiting function\n" );
-			return (pb_syntax)i;
-		}
-
-
-	debugf( "No matching syntax found; returning %s\n", stringify( SYN_LANG_NONE ) );
-	debugf( "Exiting function\n" );
-	return SYN_LANG_NONE;
-}
-
-/*
-* End pastebin_syntax.h
-*/
 
 /* 
 * pastebin.h implementation 
@@ -503,11 +63,28 @@ char* pb_expirestring[ EXPIRE_LIST_MAX ] =
 	"1M"   /* EXPIRE_1M    */
 };
 
+char* pb_statusString[STATUS_INVALID_PASTE_FORMAT+1] =
+{
+	"",                                                                            /* STATUS_OKAY                  */
+	"Bad API request, invalid api_option",                                         /* STATUS_INVALID_API_OPTION    */
+	"Bad API request, invalid api_dev_key",                                        /* STATUS_INVALID_API_DEV_KEY   */
+	"Bad API request, IP blocked",                                                 /* STATUS_IP_BLOCKED            */
+	"Bad API request, maximum number of 25 unlisted pastes for your free account", /* STATUS_MAX_UNLISTED_PASTES   */
+	"Bad API request, maximum number of 10 private pastes for your free account",  /* STATUS_MAX_PRIVATE_PASTES    */
+	"Bad API request, api_paste_code was empty",                                   /* STATUS_EMPTY_PASTE           */
+	"Bad API request, maximum paste file size exceeded",                           /* STATUS_MAX_PASTE_FILE_SIZE   */
+	"Bad API request, invalid api_expire_date",                                    /* STATUS_INVALID_EXPIRE_DATE   */
+	"Bad API request, invalid api_paste_private",                                  /* STATUS_INVALID_PASTE_PRIVATE */
+	"Post limit, maximum pastes per 24h reached",                                  /* STATUS_MAX_PASTE_PER_DAY     */
+	"Bad API request, invalid api_paste_format",                                   /* STATUS_INVALID_PASTE_FORMAT  */
+};
+
 pastebin* pb_newPastebin()
 {
 	debugf( "Entering function\n" );
 
 	pastebin* _rv   = (pastebin*)malloc( sizeof(pastebin) );
+	if( _rv == NULL ) return NULL;
 	_rv->settings   = PB_NO_SETTINGS;
 	_rv->syntax     = SYN_LANG_NONE;
 	_rv->devkey     = "";
@@ -562,6 +139,10 @@ void pb_setWithOptions( pastebin* _pb, pb_settings _settings, ... )
 			_pb->expiration = va_arg( ap, pb_expire );
 			debugf( "%s set to \"%d\"\n", stringify( _pb->expiriation ), _pb->expiration );
 		break;
+		default: // Something isn't right
+			debugf( "Nothing to set!\n" );
+			_pb->lastStatus = STATUS_NOTHING_TO_SET;
+		break;
 	}
 
 	va_end( ap );
@@ -577,6 +158,8 @@ void pb_unset( pastebin* _pb, pb_settings _settings )
 		debugf( "Item set; unsetting...\n" );
 		_pb->settings ^= _settings;
 	}
+
+
 
 	debugf( "Exiting function" );
 }
@@ -661,10 +244,23 @@ char* pb_newPaste( pastebin* _pb, char* _str, int _sz )
 
 	/*res =*/ curl_easy_perform( curl );
 	curl_easy_cleanup( curl );
+	debugf( "Return memory: %s\n", chunk.memory );
 
-	// TODO:
+	// TODO: error checking
+	for( unsigned i = STATUS_INVALID_API_OPTION; i <= STATUS_INVALID_PASTE_FORMAT; i++ )
+	{
+		debugf( "%s is %d\n", pb_statusString[i], i );
+		debugf( "Comparing \"%s\" and \"%s\"\n", pb_statusString[i], chunk.memory );
+		if( !strcmp( pb_statusString[i], chunk.memory ) )
+		{
+			debugf( "An error has occured: %s\n", chunk.memory );
+			_pb->lastStatus = i;
+			return NULL;
+		}
+	}
+	
+
 	_pb->lastStatus = STATUS_OKAY;
-	debugf( "Exiting function\n" );
 	return chunk.memory;
 }
 
@@ -813,3 +409,7 @@ char* pb_getUserPastes( pastebin* _pb, int _size )
 
 	return chunk.memory;
 }
+
+#ifdef __cplusplus
+}
+#endif

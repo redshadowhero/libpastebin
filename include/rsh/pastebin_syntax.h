@@ -1,6 +1,10 @@
 #ifndef PASTEBIN_SYNTAX
 #define PASTEBIN_SYNTAX
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum _pb_syntax
 {
 	SYN_LANG_NONE = 0,
@@ -216,5 +220,9 @@ extern char* pb_syntaxstringdesc[SYN_LIST_MAX];
 char* pb_getSyntaxString( pb_syntax );
 // returns something from pb_syntax if found; defaults to "text"
 pb_syntax pb_getSyntax( const char* );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PASTEBIN_SYNTAX */

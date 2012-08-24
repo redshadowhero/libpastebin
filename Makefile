@@ -15,15 +15,15 @@ LIBS=-lcurl
 
 all: $(EXECUTABLE)
 
-pb_debug: main.c pastebin.c
+pb_debug: main.c pastebin.c pastebin_syntax.c
 	$(GCC) -DRSHDEBUG -DPB_CLIENT_API_KEY=\"$(DEVKEY)\" $(CFLAGS) $(INCLUDE) $^ $(LIBS) -o $(BINPATH)/$@
 
-$(EXECUTABLE): main.c pastebin.c
+$(EXECUTABLE): main.c pastebin.c pastebin_syntax.c
 	$(GCC) -DPB_CLIENT_API_KEY=\"$(DEVKEY)\" $(CFLAGS) $(INCLUDE) $^ $(LIBS) -o $(BINPATH)/$@
 
 .PHONY library: $(LIBNAME)
 
-$(LIBNAME): pastebin.c
+$(LIBNAME): pastebin.c pastebin_syntax.c
 	$(GCC) $(CFLAGS) $(INCLUDE) $^ -fPIC -shared -o $(LIBPATH)/$(LIBNAME)
 
 clean:

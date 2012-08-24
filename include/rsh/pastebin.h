@@ -1,12 +1,15 @@
 /*
 * TODO:
 * + pb_getUserInformation (http://pastebin.com/api#9)
-* + #ifndef ifndef __cplusplus
 * + header information (with license)
 */
 
 #ifndef PASTEBIN_H
 #define PASTEBIN_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -47,15 +50,20 @@ typedef enum _pb_status
 	STATUS_MAX_PASTE_FILE_SIZE,   /* "Bad API request, maximum paste file size exceeded"                           */
 	STATUS_INVALID_EXPIRE_DATE,   /* "Bad API request, invalid api_expire_date"                                    */
 	STATUS_INVALID_PASTE_PRIVATE, /* "Bad API request, invalid api_paste_private"                                  */
+	STATUS_MAX_PASTE_PER_DAY,     /* "Post limit, maximum pastes per 24h reached"                                  */
 	STATUS_INVALID_PASTE_FORMAT,  /* "Bad API request, invalid api_paste_format"                                   */
 	/* function failure codes */
-	STATUS_USERNAME_IS_NULL,
-	STATUS_PASSWORD_IS_NULL,
+	/* pb_setWithOptions()    */
+	STATUS_NOTHING_TO_SET,        /* Something went wrong with pb_setWithOptions                                   */
+	/* pb_getUserSessionKey() */
+	STATUS_USERNAME_IS_NULL,      /* Trying to call the function with username being NULL                          */
+	STATUS_PASSWORD_IS_NULL,      /* Trying to call the function with the password being NULL                      */
 	STATUS_USER_KEY_NOT_SET,
 	/* size of this enum */
 	STATUS_LIST_MAX
 } pb_status;
 
+extern char* pb_statusString[STATUS_INVALID_PASTE_FORMAT+1];
 
 typedef enum _pb_expire
 {
@@ -129,5 +137,9 @@ pb_status pb_deletePaste( pastebin*, char* /* key of the paste to delete */ );
 * @return A string with the paste content; NULL otherwise.
 */
 char* pb_getRawPaste( char* /* paste key */ );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* PASTEBIN_H */
