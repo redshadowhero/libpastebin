@@ -16,6 +16,7 @@ extern "C" {
 #include <stdarg.h>
 
 #include "pastebin_syntax.h"
+#include "pastebin_status.h"
 
 /* pastebin settings shortcuts */
 #define   PB_NO_SETTINGS 0x0
@@ -36,34 +37,6 @@ extern "C" {
 #define   PB_API_RAW_URL     "http://pastebin.com/raw.php?i="
 
 typedef uint16_t pb_settings;
-
-typedef enum _pb_status
-{
-	STATUS_OKAY = 0,
-	/* paste failure codes */
-	STATUS_INVALID_API_OPTION,    /* "Bad API request, invalid api_option"                                         */
-	STATUS_INVALID_API_DEV_KEY,   /* "Bad API request, invalid api_dev_key"                                        */
-	STATUS_IP_BLOCKED,            /* "Bad API request, IP blocked"                                                 */
-	STATUS_MAX_UNLISTED_PASTES,   /* "Bad API request, maximum number of 25 unlisted pastes for your free account" */
-	STATUS_MAX_PRIVATE_PASTES,    /* "Bad API request, maximum number of 10 private pastes for your free account"  */
-	STATUS_EMPTY_PASTE,           /* "Bad API request, api_paste_code was empty"                                   */
-	STATUS_MAX_PASTE_FILE_SIZE,   /* "Bad API request, maximum paste file size exceeded"                           */
-	STATUS_INVALID_EXPIRE_DATE,   /* "Bad API request, invalid api_expire_date"                                    */
-	STATUS_INVALID_PASTE_PRIVATE, /* "Bad API request, invalid api_paste_private"                                  */
-	STATUS_MAX_PASTE_PER_DAY,     /* "Post limit, maximum pastes per 24h reached"                                  */
-	STATUS_INVALID_PASTE_FORMAT,  /* "Bad API request, invalid api_paste_format"                                   */
-	/* function failure codes */
-	/* pb_setWithOptions()    */
-	STATUS_NOTHING_TO_SET,        /* Something went wrong with pb_setWithOptions                                   */
-	/* pb_getUserSessionKey() */
-	STATUS_USERNAME_IS_NULL,      /* Trying to call the function with username being NULL                          */
-	STATUS_PASSWORD_IS_NULL,      /* Trying to call the function with the password being NULL                      */
-	STATUS_USER_KEY_NOT_SET,
-	/* size of this enum */
-	STATUS_LIST_MAX
-} pb_status;
-
-extern char* pb_statusString[STATUS_INVALID_PASTE_FORMAT+1];
 
 typedef enum _pb_expire
 {

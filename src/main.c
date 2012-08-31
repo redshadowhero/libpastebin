@@ -116,6 +116,7 @@ void parseOpts( int argc, char** argv )
 	FILE* file;
 	unsigned int fsz = 0;
 	char* string;
+	char* _retstr;
 	char* username = NULL;
 	char password[64];
 	char* paste_id = NULL;
@@ -351,10 +352,16 @@ void parseOpts( int argc, char** argv )
 			{
 				debugf( "URL detected.. extracting ID\n" );
 				paste_id = getIDFromURL( argv[optind++] );
-				printf( "%s\n", pb_getRawPaste( paste_id ) );
+				_retstr = pb_getRawPaste( paste_id );
+				if( _retstr )
+					printf( "%s \n", _retstr );
 			}
 			else
-				printf( "%s\n", pb_getRawPaste( argv[optind++] ) );
+			{
+				_retstr = pb_getRawPaste( argv[optind++] );
+				if( _retstr )
+					printf( "%s\n", _retstr );
+			}
 		}
 		else if( is_set( settings, delete_flag ) ) // they want to delete urls
 		{
@@ -382,12 +389,13 @@ void parseOpts( int argc, char** argv )
 				string[fsz] = '\0';
 
 
-				char* _retstr = pb_newPaste( pb, string, fsz+1 );
+				_retstr = pb_newPaste( pb, string, fsz+1 );
 				switch( pb->lastStatus )
 				{
 					case STATUS_OKAY:
 					default:
 						printf( "%s \n", _retstr );
+						if( _retstr ) free( _retstr );
 					break;
 					case STATUS_INVALID_API_OPTION:
 						fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );
@@ -424,6 +432,7 @@ void parseOpts( int argc, char** argv )
 					break;
 				}
 				free( string );
+				if( _retstr ) free( _retstr );
 				fclose( file );
 			}
 			else 

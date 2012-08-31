@@ -3,7 +3,6 @@ extern "C" {
 #endif
 
 #include <rsh/pastebin.h>
-#include <rsh/pastebin_syntax.h>
 #include <rsh/debug.h>
 
 #include <stdlib.h>
@@ -61,22 +60,6 @@ char* pb_expirestring[ EXPIRE_LIST_MAX ] =
 	"1H",  /* EXPIRE_1H    */
 	"1D",  /* EXPIRE_1D    */
 	"1M"   /* EXPIRE_1M    */
-};
-
-char* pb_statusString[STATUS_INVALID_PASTE_FORMAT+1] =
-{
-	"",                                                                            /* STATUS_OKAY                  */
-	"Bad API request, invalid api_option",                                         /* STATUS_INVALID_API_OPTION    */
-	"Bad API request, invalid api_dev_key",                                        /* STATUS_INVALID_API_DEV_KEY   */
-	"Bad API request, IP blocked",                                                 /* STATUS_IP_BLOCKED            */
-	"Bad API request, maximum number of 25 unlisted pastes for your free account", /* STATUS_MAX_UNLISTED_PASTES   */
-	"Bad API request, maximum number of 10 private pastes for your free account",  /* STATUS_MAX_PRIVATE_PASTES    */
-	"Bad API request, api_paste_code was empty",                                   /* STATUS_EMPTY_PASTE           */
-	"Bad API request, maximum paste file size exceeded",                           /* STATUS_MAX_PASTE_FILE_SIZE   */
-	"Bad API request, invalid api_expire_date",                                    /* STATUS_INVALID_EXPIRE_DATE   */
-	"Bad API request, invalid api_paste_private",                                  /* STATUS_INVALID_PASTE_PRIVATE */
-	"Post limit, maximum pastes per 24h reached",                                  /* STATUS_MAX_PASTE_PER_DAY     */
-	"Bad API request, invalid api_paste_format",                                   /* STATUS_INVALID_PASTE_FORMAT  */
 };
 
 pastebin* pb_newPastebin()
@@ -200,8 +183,13 @@ char* pb_getRawPaste( char* _paste_id )
 		/*response =*/ curl_easy_perform( curl );
 
 		curl_easy_cleanup( curl );
-		
+	
+		debugf( "Chunk size: %zu\n", chunk.size );
 		debugf( "Exiting function\n" );
+		if( chunk.size == 0 )
+		{
+			return NULL;
+		}
 		return chunk.memory;
 	}
 
@@ -249,7 +237,6 @@ char* pb_newPaste( pastebin* _pb, char* _str, int _sz )
 	// TODO: error checking
 	for( unsigned i = STATUS_INVALID_API_OPTION; i <= STATUS_INVALID_PASTE_FORMAT; i++ )
 	{
-		debugf( "%s is %d\n", pb_statusString[i], i );
 		debugf( "Comparing \"%s\" and \"%s\"\n", pb_statusString[i], chunk.memory );
 		if( !strcmp( pb_statusString[i], chunk.memory ) )
 		{
@@ -272,11 +259,13 @@ pb_status pb_getUserSessionKey( pastebin* _pb, char* _username, char* _password 
 	if( !_username )
 	{
 		debugf( "username is NULL!\n" );
+		_pb->lastStatus = STATUS_USERNAME_IS_NULL;
 		return STATUS_USERNAME_IS_NULL;
 	}
 	if( !_password )
 	{
 		debugf( "password is NULL!\n" );
+		_pb->lastStatus = STATUS_PASSWORD_IS_NULL;
 		return STATUS_PASSWORD_IS_NULL;
 	}
 
