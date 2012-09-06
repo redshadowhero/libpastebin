@@ -395,7 +395,6 @@ void parseOpts( int argc, char** argv )
 					case STATUS_OKAY:
 					default:
 						printf( "%s \n", _retstr );
-						if( _retstr ) free( _retstr );
 					break;
 					case STATUS_INVALID_API_OPTION:
 						fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );

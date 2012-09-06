@@ -3,7 +3,6 @@ extern "C" {
 #endif
 
 #include <rsh/pastebin_status.h>
-#include <rsh/debug.h>
 
 char* pb_statusString[STATUS_INVALID_PASTE_FORMAT+1] =
 {
