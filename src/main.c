@@ -29,7 +29,6 @@ extern "C" {
 #include <getopt.h>
 
 #include <rsh/pastebin.h>
-//#include <rsh/pastebin_syntax.h>
 #include <rsh/debug.h>
 
 #if ! defined( PB_CLIENT_API_KEY )
