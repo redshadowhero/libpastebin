@@ -54,7 +54,7 @@ char* pb_syntaxstring[SYN_LIST_MAX] =
 	"c_mac",         /* SYN_LANG_C_MAC         */
 	"cil",           /* SYN_LANG_CIL           */
 	"csharp",        /* SYN_LANG_CSHARP        */
-	"ccp",           /* SYN_LANG_CPP           */
+	"cpp",           /* SYN_LANG_CPP           */
 	"cpp-qt",        /* SYN_LANG_CPP-QT        */
 	"c_loadrunner",  /* SYN_LANG_C_LOADRUNNER  */
 	"caddcl",        /* SYN_LANG_CADDCL        */
