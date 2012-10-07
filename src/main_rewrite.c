@@ -253,7 +253,45 @@ void parseopts( int argc, const char** argv )
 
 		switch( c )
 		{
+			case 'h': // ask for help
+				printusage( argv[0] );
+			break;
 
+			case 's': // someone set the language
+				pb_setWithOptions( pb, PB_SYNTAX, pb_getSyntax( optarg ) );
+			break;
+
+			case 'r':
+				if( gb_deleteFlag  )
+				{
+					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
+					exit( 4 );
+				}
+
+				gb_retrieveFlag = true;
+			break;
+
+			case 'd':
+				if( gb_retrieveFlag )
+				{
+					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
+					exit( 4 );
+				}
+
+				gb_retrieveFlag;
+			break;
+
+			case 'e':
+				for( int i = 0; i < EXPIRE_LIST_MAX; i++ )
+					if( !strcmp( pb_expirestring[i], optarg ) )
+						pb_setWithOptions( pb, PB_EXPIRE_DATE, i );
+
+				// TODO: find a way to double-check that they got this entered.
+			break;
+
+			case 'n': // naming the paste
+				pb_setWithOptions( pb, PB_PASTE_NAME, optarg );
+			break;
 		}
 	}
 }
