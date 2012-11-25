@@ -27,15 +27,18 @@ extern "C" {
 #include <stdlib.h>
 #include <stdbool.h>
 #include <getopt.h>
+#include <sys/select.h>
 
 #include <rsh/pastebin.h>
-//#include <rsh/pastebin_syntax.h>
 #include <rsh/debug.h>
 
+/*----------------------------------------------------------------------------*\
+* Defines
+\*----------------------------------------------------------------------------*/
 #if ! defined( PB_CLIENT_API_KEY )
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
-#define DEFAULT_STDIN_BUFFER_SIZE 1024
+#define DEFAULT_STDIN_BUFFER_SIZE 1048576
 
 #define OPTS "s:n:u:p:k:a:e:litrdh"
 
@@ -61,28 +64,19 @@ extern "C" {
 	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
 	"\t-h, --help\t\t\tPrint this message\n"
 
-/* globals */
-
-#define  no_settings     0x0  // 00000000
-#define  retrieve_flag   0x1  // 00000001
-#define  user_key_get    0x2  // 00000010
-#define  password_set    0x4  // 00000100
-#define  delete_flag     0x8  // 00001000
-#define  user_list_get   0x10 // 00010000
-#define  stdin_use       0x20 // 00100000
+/*----------------------------------------------------------------------------*\
+* Globals 
+\*----------------------------------------------------------------------------*/
 
 pastebin* pb;
-
-typedef uint8_t byte;
-
-/*
-* Bits
-* [0] retrieve flag
-*/
-byte settings = no_settings;
-
-#define is_set( bite, set ) ( bite & set )
-#define set( bite, set ) ( bite = (is_set(bite,set) ? bite : bite ^ set) )
+bool gb_retrieveFlag;
+bool gb_userkeyFlag;
+bool gb_passwordFlag;
+bool gb_deleteFlag;
+bool gb_userlistFlag;
+bool gb_stdinFlag;
+bool gb_pastepublicFlag; // true means public, false means private
+bool gb_pasteunlistedFlag; // true means unlisted, false defers to gb_pastepublicFlag
 
 struct option long_options[] =
 {
@@ -101,7 +95,16 @@ struct option long_options[] =
 	{ 0,             0,                  0,   0  }
 };
 
-char* getIDFromURL( char* url )
+/*----------------------------------------------------------------------------*\
+* Functions
+\*----------------------------------------------------------------------------*/
+
+static void printUsage( char* command )
+{
+	printf( USAGE, command );
+}
+
+static char* getIDFromURL( char* url )
 /*
 * Should parse an id from a pastebin url
 * "http://pastebin.com/x9Ddu6mj" should return "x9Ddu6mj"
@@ -118,358 +121,370 @@ char* getIDFromURL( char* url )
 	return NULL;
 }
 
-void printusage( char* command )
+static int isReady()
 {
-	printf( USAGE, command );
+	fd_set s_read;
+	struct timeval timeout;
+
+	FD_ZERO( &s_read );
+	FD_SET( fileno(stdin), &s_read );
+
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 1;
+
+	return select( fileno(stdin)+1, &s_read, NULL, NULL, &timeout ) == 1 ? true:false;
 }
 
-void parseOpts( int argc, char** argv )
+static bool pastestdin()
+{
+	if( !isReady(stdin) ) return false;
+
+	size_t csz = 1;
+	char* string = malloc( sizeof(char)*DEFAULT_STDIN_BUFFER_SIZE );
+	*string = '\0';
+	char buffer[DEFAULT_STDIN_BUFFER_SIZE];
+
+
+	while( fgets( buffer, DEFAULT_STDIN_BUFFER_SIZE, stdin ) )
+	{
+		char* old = string;
+		csz += strlen( buffer );
+		string = realloc( string, csz );
+		if( string == NULL )
+		{
+			fprintf( stderr, "Can't store stdin in memory!\n" );
+			free( old );
+			return false;
+		}
+		strcat( string, buffer );
+	}
+	if( ferror( stdin ) )
+	{
+		free( string );
+		fprintf( stderr, "Can't read from stdin!\n" );
+		return false;
+	}
+
+	printf( "%s\n", pb_newPaste( pb, string, strlen(string) ) );
+
+	return true;
+}
+
+static bool pasteFile( char* _fn )
+{
+	FILE* file;
+	unsigned int fsz;
+	char* string;
+	char* response;
+
+	if( (file = fopen( _fn, "r" )) )  // be optimistic that this will work
+	{
+		fseek( file, 0, SEEK_END );
+		fsz = ftell( file );
+		fseek( file, 0, SEEK_SET );
+
+		if( fsz == 0 ) 
+		{
+			fclose( file );
+			return true; // they wanted an empty file. Doesn't mean we should do anything.
+		}
+
+		string = malloc( sizeof(char)*fsz+1 );
+		fread( string, sizeof(char), fsz, file );
+		string[fsz] = '\0';
+
+		// paste the string and then check the status
+		response = pb_newPaste( pb, string, fsz+1 );
+			
+		switch( pb->lastStatus )
+		{
+			case STATUS_OKAY:
+			default:
+				printf( "%s \n", response );
+				if( string ) free( string );
+				if( response ) free( response );
+				return true;
+			break;
+			case STATUS_INVALID_API_OPTION:
+				fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );
+			break;
+			case STATUS_INVALID_API_DEV_KEY:
+				fprintf( stderr, "Warning, dev key is invalid!\n" );
+			break;
+			case STATUS_IP_BLOCKED:
+				fprintf( stderr, "Warning, ip is blocked!\n" );
+			break;
+			case STATUS_MAX_UNLISTED_PASTES:
+				fprintf( stderr, "You can't create anymore unlisted pastes!\n" );
+			break;
+			case STATUS_MAX_PRIVATE_PASTES:
+				fprintf( stderr, "You can't create anymore private pastes!\n" );
+			break;
+			case STATUS_EMPTY_PASTE:
+				fprintf( stderr, "Your paste was empty!\n" );
+			break;
+			case STATUS_MAX_PASTE_FILE_SIZE:
+				fprintf( stderr, "Your paste was too large!\n" );
+			break;
+			case STATUS_INVALID_EXPIRE_DATE:
+				 // should never actually get here, because of how the API handles expires
+				fprintf( stderr, "Invalid expire date!\n" );
+			break;
+			case STATUS_INVALID_PASTE_PRIVATE: // ditto
+				fprintf( stderr, "Invalid paste private state!\n" );
+			break;
+			case STATUS_MAX_PASTE_PER_DAY:
+				fprintf( stderr, "Max pastes per day reached!\n" );
+			break;
+			case STATUS_INVALID_PASTE_FORMAT: // also ditto again
+				fprintf( stderr, "Invalid paste format! Use --list to see valid paste formats!\n" );
+			break;
+		}
+		if( string ) free( string );
+		if( response ) free( response );
+
+		return false; // didn't get STATUS_OKAY
+	}
+	else // be sad
+	{
+		fprintf(stderr, "Error: can't open file `%s'\n", _fn );
+		return false;
+	}
+}
+
+static bool getPaste( char* id )
+{
+	char* response;
+	if( !strncmp( id, "http:", 5 ) || !strncmp( id, "https:", 6 ) )
+	{
+		// don't free this; it's just a pointer to the id in the old string
+		char* newid = getIDFromURL( id );
+		response = pb_getRawPaste( newid );
+	}
+	else // id provided, or so we hope.
+		response = pb_getRawPaste( id );
+	
+	if( response == NULL )
+		return false;
+	else
+	{
+		printf( "%s \n", response );
+		if( response ) free( response );
+		return true;
+	}
+
+	return false;
+}
+
+static bool deletePaste( char* id )
+{
+	pb_status response;
+	if( !strncmp( id, "http:", 5 ) || !strncmp( id, "https:", 6 ) )
+	{
+		char* newid = getIDFromURL( id );
+		response = pb_deletePaste( pb, newid );
+	}
+	else // id provided
+		response = pb_deletePaste( pb, id );
+
+	if( !response ) return false;
+	else return true;
+}
+
+void parseopts( int argc, char** argv )
 {
 	int c;
-	int option_index = 0;
+	int options_index = 0;
+	char* username;
+	char* password;
 	int user_list_size = 0;
-	FILE* file;
-	unsigned int fsz = 0;
-	char* string;
-	char* _retstr;
-	char* username = NULL;
-	char password[64];
-	char* paste_id = NULL;
-	int i = 0;
-	pb_status retval = 0;
-
-	debugf( "Options with bit values:\n" );
-	debugf( "Option %s: %d\n", stringify(no_settings  ), no_settings  );  
-	debugf( "Option %s: %d\n", stringify(retrieve_flag), retrieve_flag);
-	debugf( "Option %s: %d\n", stringify(user_key_get ), user_key_get );
-	debugf( "Option %s: %d\n", stringify(password_set ), password_set );
-	debugf( "Option %s: %d\n", stringify(delete_flag  ), delete_flag  );
-	debugf( "Option %s: %d\n", stringify(user_list_get), user_list_get);
-	debugf( "Option %s: %d\n", stringify(stdin_use    ), stdin_use    );
+	pb_status returnStatus;
 
 	while( true )
 	{
-		c = getopt_long( argc, argv, OPTS, long_options, &option_index );
-
-		if( c == -1 ) break;
+		if( (c = getopt_long( argc, argv, OPTS, long_options, &options_index )) == -1 ) break;
 
 		switch( c )
 		{
-			case 0: // option has set a flag
-				if( long_options[option_index].flag != 0 )
-					break;
-				printf( "Option %s", long_options[option_index].name );
-				if( optarg )
-					printf( " with arg %s", optarg );
-				printf( "\n" );
-				break;
+			case 'h': // ask for help
+				printUsage( argv[0] );
+			break;
 
 			case 's': // someone set the language
+				debugf( "Setting language!\n" );
 				pb_setWithOptions( pb, PB_SYNTAX, pb_getSyntax( optarg ) );
 			break;
 
-			case 'h': // ask for help
-				printusage( argv[0] );
-			break;
-
-			case 'r': // retrieve flag set
-				//settings |= retrieve_flag;
-				debugf( "Setting retrieve_flag...\n" );
-				set( settings, retrieve_flag );
-				debugf( "Settings now %c\n", settings );
-				if( is_set( settings, delete_flag ) )
+			case 'r':
+				if( gb_deleteFlag  )
 				{
-					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
-					exit( 42 );
+					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
+					exit( 4 );
 				}
+
+				gb_retrieveFlag = true;
 			break;
 
-			case 'd': // delete flag set
-				//settings |= delete_flag;
-				debugf( "Setting delete_flag...\n" );
-				set( settings, delete_flag );
-				debugf( "Settings now %c\n", settings );
-				if( is_set( settings, retrieve_flag ) )
+			case 'd':
+				if( gb_retrieveFlag )
 				{
-					fprintf( stderr, "Both delete and retrieve flags are set!\n" );
-					exit( 42 );
+					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
+					exit( 4 );
 				}
+
+				gb_deleteFlag = true;
 			break;
 
-			case 'e': // set expiration
+			case 'e':
 				for( int i = 0; i < EXPIRE_LIST_MAX; i++ )
 					if( !strcmp( pb_expirestring[i], optarg ) )
-					{
 						pb_setWithOptions( pb, PB_EXPIRE_DATE, i );
-					}
-			break;
 
-			case 'i': // they want stdin input
-				debugf( "Setting stdin_use (%c)... \n", stdin_use );
-				//settings |= stdin_use;
-				set( settings, stdin_use );
-				debugf( "Settings now %c\n", settings );
+				// TODO: find a way to double-check that they got this entered.
 			break;
 
 			case 'n': // naming the paste
 				pb_setWithOptions( pb, PB_PASTE_NAME, optarg );
-				debugf( "Set %s to %s\n", stringify( PB_PASTE_NAME ), optarg );
 			break;
 
-			case 'l': // list all syntaxes.
+			case 'l': // list all syntaxes
 				printf( "List of supported languages:\n" );
-				for( i = 0; i < SYN_LIST_MAX; i++ )
+				for( int i = 0; i < SYN_LIST_MAX; i++ )
 					printf( "\t%s: %s\n", pb_syntaxstring[i], pb_syntaxstringdesc[i] );
-
-				return;
+				exit( 0 );
 			break;
 
-			case 't': // get trending pastes..
-				
-				printf( "Trending pastes:\n%s\n", pb_getTrendingPastes( pb ) );
-
+			case 't': // get trending pastes
+				printf( "%s\n", pb_getTrendingPastes( pb ) );	
 				return;
 			break;
 
 			case 'u': // give a username
-				debugf( "Username is %s\n", optarg );
-				username = optarg; // should probably use strcpy
-				//settings |= user_key_get;
-				debugf( "Setting user_key_get\n" );
-				set( settings, user_key_get );
-				debugf( "Settings now %c\n", settings );
+				username = optarg;
+				gb_userkeyFlag = true;
 			break;
 
-			case 'p': // give a password
-				if( optarg )
-				{
-					//settings |= password_set;
-					debugf( "Setting password_set...\n" );
-					set( settings, password_set );
-					debugf( "Settings now %c\n", settings );
-					strcpy( password, optarg ); // should probably use strcpy
-					debugf( "Password is %s\n", optarg );
-				}
+			case 'p':
+				password = optarg;
+				gb_passwordFlag = true;
 			break;
 
-			case 'k': // give a user session key
+			case 'k':
 				pb_setWithOptions( pb, PB_USER_KEY, optarg );
 			break;
 
-			case 'a': // the user wants to list their pastes
-				debugf( "Setting %s to %s\n", stringify( user_list_size ), optarg );
-				//settings |= user_list_get;
-				debugf( "Setting user_list_get...\n" );
-				set( settings, user_list_get );
-				debugf( "Settings now %c\n", settings );
-				user_list_size = atoi( optarg ) ;
+			case 'a':
+				gb_userlistFlag = true;
+				user_list_size = atoi( optarg );
 			break;
 
-			case '?':
-				printusage( argv[0] );
-				exit( 3 );
+			case '?': // something is wrong; print usage.
+				printUsage( argv[0] );
+				exit( 2 );
 			break;
 
 			default:
-				exit( 42 );
+				printUsage( argv[0] );
+				exit( 2 );
 			break;
 		}
 	}
 	
-	debugf( "Finished argument parsing; checking for password. %d arguments remain to parse\n", ( argc - optind ) );
-	debugf( "Post-parse settings: %c\n", settings );
-	
-	// before we parse the remaining arguments, we need to see if they wanted a session key.
-	if( is_set( settings, user_key_get ) )
+	// Post-main arguments but pre-action cleanup
+	// did they, in any way, request a user key?
+	if( gb_userkeyFlag && !gb_passwordFlag )
 	{
-		if( !is_set( settings, password_set ) ) // need to silently prompt for password somehow. TODO:
+		password = getpass( "Password: " );
+		if( password )
+			gb_passwordFlag = true;
+	}
+	if( gb_userkeyFlag && gb_passwordFlag )
+	{
+		returnStatus = pb_getUserSessionKey( pb, username, password );
+		if( returnStatus )
 		{
-			strcpy( password, getpass( "Password:" ) );
-		}
-
-		if( (retval = pb_getUserSessionKey( pb, username, password )) != STATUS_OKAY )
-		{
-			switch( retval )
-			{
-				case STATUS_USERNAME_IS_NULL: // shouldn't really get here, but the code needs cleaning up
-					fprintf( stderr, "Username is NULL!\n" );
-				break;
-				case STATUS_PASSWORD_IS_NULL:
-					fprintf( stderr, "Password is NULL!\n" );
-				break;
-				default: // we don't need to handle any of the other status returns
-				break;
-			}
-			debugf( "Couldn't get session key..\n" );
+			fprintf( stderr, "%s\n", pb_statusString[returnStatus] );
+			exit( returnStatus );
 		}
 	}
 
-	if( is_set( settings, user_list_get ) )
+	// handle remaining args
+	while( optind < argc )
 	{
-		printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
-	}
-
-	if( is_set( settings, stdin_use ) ) // they want stdin
-	{
-		fsz = DEFAULT_STDIN_BUFFER_SIZE;
-		size_t csz = 1;
-		string = (char*)malloc( sizeof(char)*fsz );
-		*string = '\0';
-		char buffer[DEFAULT_STDIN_BUFFER_SIZE];
-
-		while( fgets( buffer, DEFAULT_STDIN_BUFFER_SIZE, stdin ) )
+		if( optind == argc ) return;
+		// they want to retrieve urls
+		if( gb_retrieveFlag )
 		{
-			char* old = string;
-			csz += strlen( buffer );
-			string = realloc( string, csz );
-			if( string == NULL )
-			{
-					fprintf( stderr, "Can't reallocate string to new buffer size!\n" );
-					free( old );
-					exit( 2 );
-			}
-			strcat( string, buffer );
+			getPaste( argv[optind] );
+			if( ++optind == argc ) return;
+
+			continue;
 		}
-		if( ferror( stdin ) )
+		
+		if( gb_deleteFlag )
 		{
-			free( string );
-			fprintf( stderr, "Can't read from stdin!\n" );
-			exit( 3 );
+			deletePaste( argv[optind] );
+			if( ++optind == argc ) return;
+			continue;
 		}
-
-		printf( "%s\n", pb_newPaste( pb, string, strlen(string) ) );
-
-		return;
-	}
-
-	if( optind >= argc && is_set( settings, user_key_get ) ) // Assume they just want the user key
-	{
-		if( !is_set( settings, user_key_get ) ) // Assume they just want the user key
-		{
-			debugf( "Returning only user key\n" );
-			printf( "%s\n", pb->userkey );
-		}
-		else // they want to list their pastes
-		{
-			debugf( "Returning user pastes\n" );
-			printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
-		}
-
-		return;
-	}
-
-
-	while( optind < argc ) // handle remaining args
-	{
-		if( is_set( settings, retrieve_flag ) ) // they want to retrieve urls
-		{
-			if( !strncmp( argv[optind], "http:", 5 ) )
-			{
-				debugf( "URL detected.. extracting ID\n" );
-				paste_id = getIDFromURL( argv[optind++] );
-				_retstr = pb_getRawPaste( paste_id );
-				if( _retstr )
-					printf( "%s \n", _retstr );
-			}
-			else
-			{
-				_retstr = pb_getRawPaste( argv[optind++] );
-				if( _retstr )
-					printf( "%s\n", _retstr );
-			}
-		}
-		else if( is_set( settings, delete_flag ) ) // they want to delete urls
-		{
-			debugf( "Deleting paste %s\n", argv[optind] );
-			if( !strncmp( argv[optind], "http:", 5 ) )
-			{
-				debugf( "URL detected.. extracting ID\n" );
-				paste_id = getIDFromURL( argv[optind++] );
-				pb_deletePaste( pb, paste_id );
-			}
-			else
-				pb_deletePaste( pb, argv[optind++] );
-		}
-		else
-		{
-			if( (file = fopen( argv[optind], "r" )) != NULL )
-			{
-				fseek( file, 0, SEEK_END );
-				fsz = ftell( file );
-				fseek( file, 0, SEEK_SET );
-				string = (char*)malloc( sizeof(char)*fsz+1 );
-
-				// fails if fsz is 0
-				fread( string, sizeof(char), fsz, file );
-				string[fsz] = '\0';
-
-
-				_retstr = pb_newPaste( pb, string, fsz+1 );
-				switch( pb->lastStatus )
-				{
-					case STATUS_OKAY:
-					default:
-						printf( "%s \n", _retstr );
-					break;
-					case STATUS_INVALID_API_OPTION:
-						fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );
-					break;
-					case STATUS_INVALID_API_DEV_KEY:
-						fprintf( stderr, "Warning, dev key is invalid!\n" );
-					break;
-					case STATUS_IP_BLOCKED:
-						fprintf( stderr, "Warning, ip is blocked!\n" );
-					break;
-					case STATUS_MAX_UNLISTED_PASTES:
-						fprintf( stderr, "You can't create anymore unlisted pastes!\n" );
-					break;
-					case STATUS_MAX_PRIVATE_PASTES:
-						fprintf( stderr, "You can't create anymore private pastes!\n" );
-					break;
-					case STATUS_EMPTY_PASTE:
-						fprintf( stderr, "Your paste was empty!\n" );
-					break;
-					case STATUS_MAX_PASTE_FILE_SIZE:
-						fprintf( stderr, "Your paste was too large!\n" );
-					break;
-					case STATUS_INVALID_EXPIRE_DATE: // should never actually get here, because of how the API handles expires
-						fprintf( stderr, "Invalid expire date!\n" );
-					break;
-					case STATUS_INVALID_PASTE_PRIVATE: // ditto
-						fprintf( stderr, "Invalid paste private state!\n" );
-					break;
-					case STATUS_MAX_PASTE_PER_DAY:
-						fprintf( stderr, "Max pastes per day reached!\n" );
-					break;
-					case STATUS_INVALID_PASTE_FORMAT: // also ditto again
-						fprintf( stderr, "Invalid paste format! Use --list to see valid paste formats!\n" );
-					break;
-				}
-				free( string );
-				if( _retstr ) free( _retstr );
-				fclose( file );
-			}
-			else 
-			{
-				fprintf( stderr, "Error: Can't open file `%s`\n", argv[optind] );
-			}
-		}
+		
+		pasteFile( argv[optind] );
 		optind++;
 	}
 
+	if( optind >= argc && gb_userkeyFlag )
+	{
+		// they just want their key
+		if( !gb_userlistFlag )
+			printf( "%s\n", pb->userkey );
+		else // they want their pastes listed
+		{
+			// TODO: error checking
+			printf( "%s\n", pb_getUserPastes( pb, user_list_size ) );
+		}
+	}
+	else if( optind == argc )
+	{
+		// well, if we got here, that means there's no options, we didn't 
+		// retrieve anything, and we didn't delete anything.
+		// I guess we want stdin?
+		if( pastestdin() ) return;
+		
+		// I guess they didn't get stdin.. let's give them help?
+		printUsage( argv[0] );
+	}
 }
 
-int main( int argc, char** argv )
-{ 
-	pb = pb_newPastebin();
+/*----------------------------------------------------------------------------*\
+* main
+\*----------------------------------------------------------------------------*/
+
+int main(int argc, char *argv[])
+{
+	/*
+	* init
+	*/
+	pb                   = pb_newPastebin();
 	pb_setWithOptions( pb, PB_DEV_KEY, PB_CLIENT_API_KEY );
 	pb_setWithOptions( pb, PB_SYNTAX, SYN_LANG_NONE );
 	pb_setWithOptions( pb, PB_USER_KEY, "");
+	
+	gb_retrieveFlag      = false;
+	gb_userkeyFlag       = false;
+	gb_passwordFlag      = false;
+	gb_deleteFlag        = false;
+	gb_userlistFlag      = false;
+	gb_stdinFlag         = false;
+	gb_pastepublicFlag   = true;
+	gb_pasteunlistedFlag = false;
 
-	if( argc < 2 ) printusage( argv[0] );
-	parseOpts( argc, argv );
+	if( argc==1 )
+	{
+		printUsage( argv[0] );
+		return 0;
+	}
 
-	pb_freePastebin( pb );
+	parseopts( argc, argv );
 
 	return 0;
 }
