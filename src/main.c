@@ -306,9 +306,6 @@ void parseopts( int argc, char** argv )
 
 		switch( c )
 		{
-			case 0:
-				if( long_options[options_index].flag != 0 )	
-			break;
 			case 'h': // ask for help
 				printUsage( argv[0] );
 			break;
@@ -358,7 +355,7 @@ void parseopts( int argc, char** argv )
 			break;
 
 			case 't': // get trending pastes
-				pb_getTrendingPastes( pb );	
+				printf( "%s\n", pb_getTrendingPastes( pb ) );	
 				return;
 			break;
 
@@ -412,23 +409,22 @@ void parseopts( int argc, char** argv )
 	}
 
 	// handle remaining args
-	while( optind <= argc )
+	while( optind < argc )
 	{
 		if( optind == argc ) return;
 		// they want to retrieve urls
 		if( gb_retrieveFlag )
 		{
-			printf( "Getting paste %s\n", getIDFromURL( argv[optind] ) );
 			getPaste( argv[optind] );
-			optind++;
+			if( ++optind == argc ) return;
+
 			continue;
 		}
 		
 		if( gb_deleteFlag )
 		{
-			printf( "Deleting paste %s\n", getIDFromURL( argv[optind] ) );
 			deletePaste( argv[optind] );
-			optind++;
+			if( ++optind == argc ) return;
 			continue;
 		}
 		
@@ -457,9 +453,6 @@ void parseopts( int argc, char** argv )
 		// I guess they didn't get stdin.. let's give them help?
 		printUsage( argv[0] );
 	}
-	
-
-
 }
 
 /*----------------------------------------------------------------------------*\
