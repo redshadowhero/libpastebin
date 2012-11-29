@@ -2,7 +2,7 @@
 DEVKEY=4601467a7a6b84ea18a7975639e82e28
 
 GCC=gcc
-CFLAGS=-std=c99 -Wall -pedantic
+CFLAGS=-std=gnu99 -Wall -pedantic
 EXECUTABLE=pb
 LIBNAME=libpastebin.so
 LIBPATH=lib

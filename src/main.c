@@ -37,7 +37,7 @@ extern "C" {
 \*----------------------------------------------------------------------------*/
 #define VERSIONMAJOR 0
 #define VERSIONMINOR 4
-#define BUGFIX       0
+#define BUGFIX       1
 
 
 #if ! defined( PB_CLIENT_API_KEY )
@@ -143,12 +143,13 @@ static int isReady()
 
 static bool pastestdin()
 {
-	if( !isReady(stdin) ) return false;
+	if( !isReady() ) return false;
 
 	size_t csz = 1;
 	char* string = malloc( sizeof(char)*DEFAULT_STDIN_BUFFER_SIZE );
 	*string = '\0';
 	char buffer[DEFAULT_STDIN_BUFFER_SIZE];
+	char* response;
 
 
 	while( fgets( buffer, DEFAULT_STDIN_BUFFER_SIZE, stdin ) )
@@ -171,7 +172,51 @@ static bool pastestdin()
 		return false;
 	}
 
-	printf( "%s\n", pb_newPaste( pb, string, strlen(string) ) );
+	response = pb_newPaste( pb, string, strlen(string) );
+	switch( pb->lastStatus )
+	{
+		case STATUS_OKAY:
+		default:
+			printf( "%s \n", response );
+			if( response ) free( response );
+			return true;
+		break;
+		case STATUS_INVALID_API_OPTION:
+			fprintf( stderr, "Warning, an error that never should have occurred has occured\n" );
+		break;
+		case STATUS_INVALID_API_DEV_KEY:
+			fprintf( stderr, "Warning, dev key is invalid!\n" );
+		break;
+		case STATUS_IP_BLOCKED:
+			fprintf( stderr, "Warning, ip is blocked!\n" );
+		break;
+		case STATUS_MAX_UNLISTED_PASTES:
+			fprintf( stderr, "You can't create anymore unlisted pastes!\n" );
+		break;
+		case STATUS_MAX_PRIVATE_PASTES:
+			fprintf( stderr, "You can't create anymore private pastes!\n" );
+		break;
+		case STATUS_EMPTY_PASTE:
+			fprintf( stderr, "Your paste was empty!\n" );
+		break;
+		case STATUS_MAX_PASTE_FILE_SIZE:
+			fprintf( stderr, "Your paste was too large!\n" );
+		break;
+		case STATUS_INVALID_EXPIRE_DATE:
+			 // should never actually get here, because of how the API handles expires
+			fprintf( stderr, "Invalid expire date!\n" );
+		break;
+		case STATUS_INVALID_PASTE_PRIVATE: // ditto
+			fprintf( stderr, "Invalid paste private state!\n" );
+		break;
+		case STATUS_MAX_PASTE_PER_DAY:
+			fprintf( stderr, "Max pastes per day reached!\n" );
+		break;
+		case STATUS_INVALID_PASTE_FORMAT: // also ditto again
+			fprintf( stderr, "Invalid paste format! Use --list to see valid paste formats!\n" );
+		break;
+	}
+	if( string ) free( string );
 
 	return true;
 }
@@ -483,12 +528,6 @@ int main(int argc, char *argv[])
 	gb_stdinFlag         = false;
 	gb_pastepublicFlag   = true;
 	gb_pasteunlistedFlag = false;
-
-	if( argc==1 )
-	{
-		printUsage( argv[0] );
-		return 0;
-	}
 
 	parseopts( argc, argv );
 
