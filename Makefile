@@ -16,7 +16,7 @@ LIBS=-lcurl
 all: $(EXECUTABLE)
 
 pb_debug: main.c pastebin.c pastebin_syntax.c pastebin_status.c
-	$(GCC) -DRSHDEBUG -DPB_CLIENT_API_KEY=\"$(DEVKEY)\" $(CFLAGS) $(INCLUDE) $^ $(LIBS) -o $(BINPATH)/$@
+	$(GCC) -g -pg -DRSHDEBUG -DPB_CLIENT_API_KEY=\"$(DEVKEY)\" $(CFLAGS) $(INCLUDE) $^ $(LIBS) -o $(BINPATH)/$@
 
 $(EXECUTABLE): main.c pastebin.c pastebin_syntax.c pastebin_status.c
 	$(GCC) -DPB_CLIENT_API_KEY=\"$(DEVKEY)\" $(CFLAGS) $(INCLUDE) $^ $(LIBS) -o $(BINPATH)/$@

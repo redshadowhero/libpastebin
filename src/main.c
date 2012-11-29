@@ -35,6 +35,11 @@ extern "C" {
 /*----------------------------------------------------------------------------*\
 * Defines
 \*----------------------------------------------------------------------------*/
+#define VERSIONMAJOR 0
+#define VERSIONMINOR 4
+#define BUGFIX       0
+
+
 #if ! defined( PB_CLIENT_API_KEY )
 #define PB_CLIENT_API_KEY "000000000000000000000000000000000"
 #endif 
@@ -44,25 +49,25 @@ extern "C" {
 
 #define USAGE \
 	"Usage: %s [OPTION...] file1 [file2...]\n" \
-	"\t-u, --user=USERNAME\t\tGive a username to authenticate as\n" \
-	"\t-p, --pass=PASSWORD\t\tGive a password to authenticate as\n" \
-	"\t-k, --key=USERKEY\t\tUse a user key to interact with pastebin\n" \
-	"\t-s, --syntax=SYNTAX\t\tUse specified syntax\n" \
-	"\t-e, --expire=WHEN\t\tHow long the paste should last.\n" \
-	"\t\t\t\t\tAcceptable values are:\n" \
-	"\t\t\t\t\tNever: 'N'\n" \
-	"\t\t\t\t\t10 minutes: '10M'\n" \
-	"\t\t\t\t\t1 hour: '1H'\n" \
-	"\t\t\t\t\t1 day: '1D'\n" \
-	"\t\t\t\t\t1 month: '1M'\n" \
-	"\t-n, --name=NAME\t\t\tGive a name to the paste\n" \
-	"\t-l, --list\t\t\tList all supported syntaxes\n" \
-	"\t-t, --trending\t\t\tGet trending pastes\n" \
-	"\t-i, --stdin\t\t\tUse stdin for input\n" \
-	"\t-a, --paste-list=AMOUNT\t\tLists AMOUNT pastes by user. Pass 0 if you want the default amount. Need username or key to use.\n" \
-	"\t-r, --retrieve\t\t\tRetrieve the paste and dump it to stdout\n" \
-	"\t-d, --delete\t\t\tDelete pastes by ID. Need username or user key to delete.\n" \
-	"\t-h, --help\t\t\tPrint this message\n"
+	"    -u, --user=USERNAME        Give a username to authenticate as\n" \
+	"    -p, --pass=PASSWORD        Give a password to authenticate as\n" \
+	"    -k, --key=USERKEY          Use a user key to interact with pastebin\n" \
+	"    -s, --syntax=SYNTAX        Use specified syntax\n" \
+	"    -e, --expire=WHEN          How long the paste should last.\n" \
+	"                               Acceptable values are:\n" \
+	"                               Never: 'N'\n" \
+	"                               10 minutes: '10M'\n" \
+	"                               1 hour: '1H'\n" \
+	"                               1 day: '1D'\n" \
+	"                               1 month: '1M'\n" \
+	"    -n, --name=NAME            Give a name to the paste\n" \
+	"    -l, --list                 List all supported syntaxes\n" \
+	"    -t, --trending             Get trending pastes\n" \
+	"    -i, --stdin                Use stdin for input\n" \
+	"    -a, --paste-list=AMOUNT    Lists AMOUNT pastes by user. Pass 0 if you want the default amount. Need username or key to use.\n" \
+	"    -r, --retrieve             Retrieve the paste and dump it to stdout\n" \
+	"    -d, --delete               Delete pastes by ID. Need username or user key to delete.\n" \
+	"    -h, --help                 Print this message\n"
 
 /*----------------------------------------------------------------------------*\
 * Globals 
@@ -102,6 +107,7 @@ struct option long_options[] =
 static void printUsage( char* command )
 {
 	printf( USAGE, command );
+	printf( "Version %d.%d.%d\n", VERSIONMAJOR, VERSIONMINOR, BUGFIX );
 }
 
 static char* getIDFromURL( char* url )
@@ -429,7 +435,7 @@ void parseopts( int argc, char** argv )
 		}
 		
 		pasteFile( argv[optind] );
-		optind++;
+		if( ++optind == argc ) return;
 	}
 
 	if( optind >= argc && gb_userkeyFlag )

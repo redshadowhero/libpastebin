@@ -156,7 +156,7 @@ void pb_unset( pastebin* _pb, pb_settings _settings )
 		_pb->settings ^= _settings;
 	}
 
-
+	_pb->lastStatus = STATUS_OKAY;
 
 	debugf( "Exiting function" );
 }
@@ -167,11 +167,13 @@ bool pb_isSet( pastebin* _pb, pb_settings _setting )
 	if( (_pb->settings & _setting) ) 
 	{
 		debugf( "Item is set; exiting function\n" );
+		_pb->lastStatus = STATUS_OKAY;
 		return true;
 	}
 	else
 	{
 		debugf( "Item isn't set; exiting function\n" );
+		_pb->lastStatus = STATUS_OKAY;
 		return false;
 	}
 }
@@ -216,7 +218,7 @@ char* pb_newPaste( pastebin* _pb, char* _str, int _sz )
 {
 	debugf( "Entering function\n" );
 
-	char* pastestr = (char*)malloc( sizeof(char)*(_sz*3)+1 );
+	char* pastestr;
 	char* argu     = (char*)malloc( sizeof(char)*(_sz*4)+256 );
 	CURL* curl     = curl_easy_init();
 	//CURLcode res;
@@ -233,7 +235,7 @@ char* pb_newPaste( pastebin* _pb, char* _str, int _sz )
 
 	pastestr = curl_easy_escape( curl, _str, _sz );
 	if( _pb->pastename )
-		_pb->pastename = curl_easy_escape( curl, _pb->pastename, strlen( _pb->pastename ) ); // TODO: too many lookups. Replace with local variable.
+		_pb->pastename = curl_easy_escape( curl, _pb->pastename, strlen( _pb->pastename ) );
 
 	sprintf( argu, "api_option=paste&api_user_key=%s&api_paste_private=%d&api_paste_name=%s&api_paste_expire_date=%s&api_paste_format=%s&api_dev_key=%s&api_paste_code=%s",
 			 _pb->userkey, (pb_isSet(_pb, PB_PASTE_UNLISTED)?1:(pb_isSet( _pb, PB_PASTE_PRIVATE)?2:0)), (_pb->pastename)?_pb->pastename:"", 
@@ -245,6 +247,8 @@ char* pb_newPaste( pastebin* _pb, char* _str, int _sz )
 	curl_easy_setopt( curl, CURLOPT_NOBODY, 0 );
 
 	/*res =*/ curl_easy_perform( curl );
+	curl_free( pastestr );
+	free( argu );
 	curl_easy_cleanup( curl );
 	debugf( "Return memory: %s\n", chunk.memory );
 
@@ -313,6 +317,7 @@ pb_status pb_getUserSessionKey( pastebin* _pb, char* _username, char* _password 
 
 	debugf( "Exiting function\n" );
 
+	_pb->lastStatus = STATUS_OKAY;
 	return STATUS_OKAY;
 }
 
@@ -346,6 +351,7 @@ pb_status pb_deletePaste( pastebin* _pb, char* _paste_id )
 
 	debugf( "Exiting function\n" );
 
+	_pb->lastStatus = STATUS_OKAY;
 	return STATUS_OKAY;
 }
 
@@ -374,7 +380,8 @@ char* pb_getTrendingPastes( pastebin* _pb )
 	debugf( "Response from server:\n%s\n", chunk.memory );
 
 	debugf( "Exiting function\n" );
-
+	
+	_pb->lastStatus = STATUS_OKAY;
 	return chunk.memory;
 }
 
@@ -409,7 +416,8 @@ char* pb_getUserPastes( pastebin* _pb, int _size )
 	debugf( "Response from the server:\n%s\n", chunk.memory );
 
 	debugf( "Exiting function\n" );
-
+	
+	_pb->lastStatus = STATUS_OKAY;
 	return chunk.memory;
 }
 
