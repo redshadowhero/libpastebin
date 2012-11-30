@@ -37,7 +37,7 @@ extern "C" {
 \*----------------------------------------------------------------------------*/
 #define VERSIONMAJOR 0
 #define VERSIONMINOR 4
-#define BUGFIX       1
+#define BUGFIX       2
 
 
 #if ! defined( PB_CLIENT_API_KEY )
@@ -75,8 +75,9 @@ extern "C" {
 
 pastebin* pb;
 bool gb_retrieveFlag;
-bool gb_userkeyFlag;
+bool gb_usernameFlag;
 bool gb_passwordFlag;
+bool gb_userkeyFlag;
 bool gb_deleteFlag;
 bool gb_userlistFlag;
 bool gb_stdinFlag;
@@ -367,7 +368,7 @@ void parseopts( int argc, char** argv )
 			break;
 
 			case 'r':
-				if( gb_deleteFlag  )
+				if( gb_deleteFlag || gb_userlistFlag )
 				{
 					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
 					exit( 4 );
@@ -377,13 +378,24 @@ void parseopts( int argc, char** argv )
 			break;
 
 			case 'd':
-				if( gb_retrieveFlag )
+				if( gb_retrieveFlag || gb_userlistFlag )
 				{
 					fprintf( stderr, "Can't set both the delete and retrieve flags!\n" );
 					exit( 4 );
 				}
 
 				gb_deleteFlag = true;
+			break;
+
+			case 'a':
+
+				if( gb_retrieveFlag || gb_deleteFlag )
+				{
+					fprintf( stderr, "Can't set user list flag with delete or retrieve!\n" );
+					exit( 4 );
+				}
+				gb_userlistFlag = true;
+				user_list_size = atoi( optarg );
 			break;
 
 			case 'e':
@@ -412,7 +424,7 @@ void parseopts( int argc, char** argv )
 
 			case 'u': // give a username
 				username = optarg;
-				gb_userkeyFlag = true;
+				gb_usernameFlag = true;
 			break;
 
 			case 'p':
@@ -422,11 +434,7 @@ void parseopts( int argc, char** argv )
 
 			case 'k':
 				pb_setWithOptions( pb, PB_USER_KEY, optarg );
-			break;
-
-			case 'a':
-				gb_userlistFlag = true;
-				user_list_size = atoi( optarg );
+				gb_userkeyFlag = true;
 			break;
 
 			case '?': // something is wrong; print usage.
@@ -443,13 +451,15 @@ void parseopts( int argc, char** argv )
 	
 	// Post-main arguments but pre-action cleanup
 	// did they, in any way, request a user key?
-	if( gb_userkeyFlag && !gb_passwordFlag )
+	//
+	// TODO: if they've already entered a key, skip this.
+	if( gb_usernameFlag && !gb_passwordFlag && !gb_userkeyFlag )
 	{
 		password = getpass( "Password: " );
 		if( password )
 			gb_passwordFlag = true;
 	}
-	if( gb_userkeyFlag && gb_passwordFlag )
+	if( gb_usernameFlag && gb_passwordFlag && !gb_userkeyFlag )
 	{
 		returnStatus = pb_getUserSessionKey( pb, username, password );
 		if( returnStatus )
@@ -457,6 +467,7 @@ void parseopts( int argc, char** argv )
 			fprintf( stderr, "%s\n", pb_statusString[returnStatus] );
 			exit( returnStatus );
 		}
+		gb_userkeyFlag = true;
 	}
 
 	// handle remaining args
@@ -478,7 +489,7 @@ void parseopts( int argc, char** argv )
 			if( ++optind == argc ) return;
 			continue;
 		}
-		
+
 		pasteFile( argv[optind] );
 		if( ++optind == argc ) return;
 	}
@@ -521,6 +532,7 @@ int main(int argc, char *argv[])
 	pb_setWithOptions( pb, PB_USER_KEY, "");
 	
 	gb_retrieveFlag      = false;
+	gb_usernameFlag      = false;
 	gb_userkeyFlag       = false;
 	gb_passwordFlag      = false;
 	gb_deleteFlag        = false;

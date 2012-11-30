@@ -102,7 +102,7 @@ char* pb_newPaste( pastebin*, char*, int );
 * @return The session key; NULL otherwise.
 */
 pb_status pb_getUserSessionKey( pastebin* /* pb */, char* /* username */, char* /* password */ );
-/** Gets a list of all user pastest, delimited by a given limit size.
+/** Gets a list of all user pastes, delimited by a given limit size.
 * @param[in] _pb The pastebin object.
 * @param[in] _size The number of entries to return
 * @return A list of pastes
